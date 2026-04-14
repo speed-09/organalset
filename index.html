@@ -3,130 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Subtitle Master (Step by Step)</title>
+    <title>AI Subtitle Master Pro</title>
     <style>
         :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
         body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 700px; text-align: center; }
-        h2 { color: var(--accent); margin-bottom: 5px; }
-        .upload-area { border: 2px dashed #30363d; padding: 20px; border-radius: 15px; cursor: pointer; margin: 15px 0; }
-        .action-btns { display: flex; gap: 10px; margin: 15px 0; }
-        button { flex: 1; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.3s; }
-        .btn-whisper { background: #58a6ff; color: white; }
-        .btn-gemini { background: #238636; color: white; display: none; }
+        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 600px; text-align: center; }
+        h2 { color: var(--accent); margin-bottom: 20px; }
+        .upload-box { border: 2px dashed #30363d; padding: 30px; border-radius: 15px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; }
+        .upload-box:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 15px; }
         button:disabled { background: #333; color: #666; cursor: not-allowed; }
-        #status { margin: 10px 0; font-size: 13px; color: #fbbf24; }
-        .result-container { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-        .box { flex: 1; min-width: 280px; text-align: left; }
-        textarea { width: 100%; height: 350px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; }
+        #status { margin: 15px 0; font-size: 14px; color: #fbbf24; font-weight: bold; }
+        .result-area { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        .box { flex: 1; min-width: 250px; text-align: left; }
+        textarea { width: 100%; height: 300px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🎙️ Subtitle Master</h2>
-    <p style="font-size: 12px; color: #8b949e;">တစ်ဆင့်ချင်းစီ လုပ်ဆောင်ရန် (Step-by-Step Mode)</p>
-
-    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
-        <span id="fileLabel">အသံဖိုင် ရွေးချယ်ပါ</span>
-        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="showFileName()">
-    </div>
-
-    <div class="action-btns">
-        <button id="whisperBtn" class="btn-whisper" onclick="runWhisper()">၁။ စာသားထုတ်မည် (Whisper)</button>
-        <button id="geminiBtn" class="btn-gemini" onclick="runGemini()">၂။ မြန်မာပြန်မည် (Gemini)</button>
-    </div>
+    <h2>🎙️ AI Subtitle Master Pro</h2>
     
-    <div id="status">ဖိုင်ရွေးပြီး ပထမခလုတ်ကို နှိပ်ပါ</div>
+    <div class="upload-box" onclick="document.getElementById('audioFile').click()">
+        <span id="fileLabel">အသံဖိုင် ရွေးချယ်ပါ (Max: 25MB)</span>
+        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="updateName()">
+    </div>
 
-    <div class="result-container">
+    <button id="runBtn" onclick="startProcess()">စာသားထုတ်ပြီး မြန်မာပြန်မည်</button>
+    <div id="status">အသံဖိုင်ရွေးပြီး ခလုတ်နှိပ်ပါ</div>
+
+    <div class="result-area">
         <div class="box">
-            <label style="font-size: 12px; color: #8b949e;">English SRT</label>
-            <textarea id="engText" placeholder="English စာသားများ ဒီမှာ ပေါ်လာပါမည်..."></textarea>
+            <label style="font-size:12px; color:#8b949e">English SRT</label>
+            <textarea id="engOut" readonly></textarea>
         </div>
         <div class="box">
-            <label style="font-size: 12px; color: #8b949e;">Myanmar SRT</label>
-            <textarea id="mmText" placeholder="မြန်မာဘာသာပြန် ဒီမှာ ပေါ်လာပါမည်..."></textarea>
+            <label style="font-size:12px; color:#8b949e">Myanmar SRT</label>
+            <textarea id="mmOut" readonly></textarea>
         </div>
     </div>
 </div>
 
 <script>
+    // Keys အားလုံးကို အဆင့်သင့် ထည့်ပေးထားပါတယ်
     const wKeys = ["R3NrXzJ4ZWlBU1I3S041NG9HZE9tVFZDV0dyeWIzRllQM1RXbm1INEx5RjBMNjhENlZYcnVJZWUK", "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK", "R3NrX0FCb2IxM2t1RjhNTUgwN2xaNVJOV0dyeWIzRlk0QmJ2S2I1MHAxQmRnaVN4bHJ1THhKUnIK", "R3NrX2pPSVdkcFpjSmpJbGNrSUs0ZWZzV0dyeWIzRll5NGlvYXZqTU1HOGdQdkNEVjhMU1VZWHYK", "R3NrXzhrc1p4MHlidUZ4ejVTMmdSWWhWV0dyeWIzRllhM1BzZnNhNnNVb1B3NnBaU2htclFEWlIK", "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK", "R3NrX2wzOWNtaWNmU3c3Mjg0RFh4MEJrV0dyeWIzRllScEFJZXhtZ05FUkRaWjkzdFlwOHRJNTUK"].map(k => atob(k).trim());
     const gKeys = ["QUl6YVN5Q2VVSnI0X3VOWGthWlpud0xidmN5M1BYWDUzTHlxbl9vTQo=", "QUl6YVN5QVJ6NmVEa2k4c3VLbXdsclFkSVphVG54Z0VlVlBLbFhrCg==", "QUl6YVN5Qjd1RGZHaTdPVW9rbVA3SXBOQkdSSDhSR1dTREh6VS1VCg==", "QUl6YVN5QjZyQWN3Zy16a3pWOW9EcUR4czQ2bVo3eTZZY3I1bS1uago=", "QUl6YVN5Q210ZUxNNUJTOEhNNVBSaXN3TVNiOElnSHlGY0p6X1h3Cg==", "QUl6YVN5RGE4UU1yOTI4VXVEWUd3MGN0bmtlV05IeDBkSVc3dm8wCg==", "QUl6YVN5Qm5fd2xGM2d6QjBhWEpPZm1sbWJhUkJqRUhodlBHRnBVCg==", "QUl6YVN5QkoyQXVzUzdrdXZOVDEyM0diR3lla3NIRDd5VUx4OEFBCg==", "QUl6YVN5RFZ2MzFTZHhRTkcweDVTbVgxMGdrZFI1SXFDNmJUblo0Cg==", "QUl6YVN5QVRTd2RsUDltSjNtVG9HcS1jWFcxQXVZNXN3LUM2b2VnCg=="].map(k => atob(k).trim());
 
-    function showFileName() {
-        const file = document.getElementById('audioFile').files[0];
-        if (file) document.getElementById('fileLabel').innerText = file.name;
+    function updateName() {
+        const f = document.getElementById('audioFile').files[0];
+        if(f) document.getElementById('fileLabel').innerText = f.name;
     }
 
-    // ၁။ Whisper ကို ကိုယ်တိုင်နှိပ်ပြီး Run ရန်
-    async function runWhisper() {
+    async function startProcess() {
         const file = document.getElementById('audioFile').files[0];
-        if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
+        if(!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
-        const btn = document.getElementById('whisperBtn');
+        const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
-        const engArea = document.getElementById('engText');
-
         btn.disabled = true;
-        status.innerText = "Whisper ဖြင့် စာသားထုတ်နေသည်... ခဏစောင့်ပါ။";
 
+        // Step 1: Whisper
+        status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
         let engSrt = "";
-        for (let key of wKeys) {
+        for(let k of wKeys) {
             try {
-                engSrt = await fetchWhisper(file, key);
-                if (engSrt) break;
-            } catch (e) { console.log("Key Failed"); }
+                engSrt = await getWhisper(file, k);
+                if(engSrt) break;
+            } catch(e) {}
         }
 
-        if (engSrt) {
-            engArea.value = engSrt;
-            status.innerText = "စာသားထုတ်ယူမှု ပြီးပါပြီ။ ဘာသာပြန်ရန် ခလုတ်နှိပ်ပါ။";
-            document.getElementById('geminiBtn').style.display = "block";
-        } else {
-            status.innerText = "Error တက်သွားပါသည်။ ပြန်ကြိုးစားကြည့်ပါ။";
-            btn.disabled = false;
+        if(!engSrt) {
+            status.innerText = "Whisper Error! လိုင်းပြန်စစ်ပြီး Refresh လုပ်ပေးပါ။";
+            btn.disabled = false; return;
         }
-    }
 
-    // ၂။ Gemini ကို ကိုယ်တိုင်နှိပ်ပြီး Run ရန်
-    async function runGemini() {
-        const srtText = document.getElementById('engText').value;
-        if (!srtText) return alert("English စာသားမရှိဘဲ ပြန်လို့မရပါ");
+        document.getElementById('engOut').value = engSrt;
+        document.getElementById('engOut').style.display = "block";
 
-        const btn = document.getElementById('geminiBtn');
-        const status = document.getElementById('status');
-        const mmArea = document.getElementById('mmText');
-
-        btn.disabled = true;
-        status.innerText = "Gemini ဖြင့် မြန်မာဘာသာပြန်နေသည်...";
-
+        // Step 2: Gemini
+        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာပြန်နေသည်...";
         let mmSrt = "";
-        for (let key of gKeys) {
+        for(let k of gKeys) {
             try {
-                mmSrt = await fetchGemini(srtText, key);
-                if (mmSrt) break;
-            } catch (e) { console.log("Gemini Key Failed"); }
+                mmSrt = await getGemini(engSrt, k);
+                if(mmSrt) break;
+            } catch(e) {}
         }
 
-        if (mmSrt) {
-            mmArea.value = mmSrt;
-            status.innerText = "အားလုံး ပြီးစီးပါပြီ!";
+        if(mmSrt) {
+            document.getElementById('mmOut').value = mmSrt;
+            document.getElementById('mmOut').style.display = "block";
+            status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
         } else {
-            status.innerText = "ဘာသာပြန်မှု မအောင်မြင်ပါ။";
-            btn.disabled = false;
+            status.innerText = "Gemini Error! ခဏနေမှ ပြန်စမ်းပေးပါ။";
         }
+        btn.disabled = false;
     }
 
-    async function fetchWhisper(file, key) {
+    async function getWhisper(file, key) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("model", "whisper-large-v3");
         fd.append("response_format", "verbose_json");
         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${key}` },
+            headers: {"Authorization": `Bearer ${key}`},
             body: fd
         });
         const data = await res.json();
@@ -137,24 +118,20 @@
         return srt;
     }
 
-    async function fetchGemini(text, key) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
-        const res = await fetch(url, {
+    async function getGemini(text, key) {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "contents": [{ "parts": [{ "text": "Translate to Myanmar SRT format:\n\n" + text }] }] })
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate to Myanmar SRT format:\n\n" + text }] }] })
         });
         const data = await res.json();
         return data.candidates[0].content.parts[0].text;
     }
 
-    function formatTime(seconds) {
-        const date = new Date(seconds * 1000);
-        const hh = String(date.getUTCHours()).padStart(2, '0');
-        const mm = String(date.getUTCMinutes()).padStart(2, '0');
-        const ss = String(date.getUTCSeconds()).padStart(2, '0');
-        const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
-        return `${hh}:${mm}:${ss},${ms}`;
+    function formatTime(s) {
+        const d = new Date(s * 1000);
+        const pad = (n, l=2) => String(n).padStart(l, '0');
+        return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())},${pad(d.getUTCMilliseconds(), 3)}`;
     }
 </script>
 
