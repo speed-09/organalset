@@ -3,109 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master - Auto Keys</title>
+    <title>AI Subtitle Master (Auto-Key)</title>
     <style>
         :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
-        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; align-items: center; margin: 0; }
-        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: var(--accent); margin-bottom: 10px; }
-        p { font-size: 12px; color: #8b949e; margin-bottom: 25px; }
-        .upload-box { border: 2px dashed #30363d; padding: 20px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
-        .upload-box:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
-        button { width: 100%; padding: 15px; margin-top: 20px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3); }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-        #status { margin-top: 20px; font-size: 13px; color: #fbbf24; }
-        textarea { width: 100%; height: 200px; margin-top: 20px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 10px; font-family: monospace; display: none; resize: none; }
+        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 600px; text-align: center; }
+        h2 { color: var(--accent); margin-bottom: 5px; }
+        .upload-area { border: 2px dashed #30363d; padding: 30px; border-radius: 15px; cursor: pointer; margin: 20px 0; transition: 0.3s; }
+        .upload-area:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #status { margin: 15px 0; font-size: 14px; color: #fbbf24; font-weight: bold; }
+        .result-container { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .box { flex: 1; min-width: 250px; text-align: left; }
+        label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 5px; }
+        textarea { width: 100%; height: 300px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🎙️ Whisper SRT Master</h2>
-    <p>Auto-Rotation Keys Enabled (၇ ခု ပါဝင်သည်)</p>
+    <h2>🎙️ AI Subtitle Master</h2>
+    <p style="font-size: 12px; color: #8b949e;">Whisper (English) + Gemini (Myanmar) Auto-Translation</p>
 
-    <div class="upload-box" onclick="document.getElementById('audioFile').click()">
-        <span id="fileName">အသံဖိုင် ရွေးချယ်ရန် နှိပ်ပါ</span>
-        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="showName()">
+    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
+        <span id="fileLabel">အသံဖိုင် ရွေးချယ်ရန် နှိပ်ပါ</span>
+        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="showFileName()">
     </div>
 
-    <button id="runBtn" onclick="startTranscription()">စာသား စတင်ထုတ်ယူမည်</button>
+    <button id="runBtn" onclick="processAI()">စတင်လုပ်ဆောင်မည်</button>
     
     <div id="status">အဆင်သင့်ဖြစ်ပါပြီ</div>
-    <textarea id="result" readonly></textarea>
+
+    <div class="result-container">
+        <div class="box">
+            <label>English SRT (Original)</label>
+            <textarea id="engText" readonly></textarea>
+        </div>
+        <div class="box">
+            <label>Myanmar SRT (Translated)</label>
+            <textarea id="mmText" readonly></textarea>
+        </div>
+    </div>
 </div>
 
 <script>
-    // သင်ပေးထားတဲ့ Key တွေကို အကာအကွယ်နဲ့ ထည့်ထားပါတယ်
-    const rawKeys = [
-        "R3NrXzJ4ZWlBU1I3S041NG9HZE9tVFZDV0dyeWIzRllQM1RXbm1INEx5RjBMNjhENlZYcnVJZWUK",
-        "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK",
-        "R3NrX0FCb2IxM2t1RjhNTUgwN2xaNVJOV0dyeWIzRlk0QmJ2S2I1MHAxQmRnaVN4bHJ1THhKUnIK",
-        "R3NrX2pPSVdkcFpjSmpJbGNrSUs0ZWZzV0dyeWIzRll5NGlvYXZqTU1HOGdQdkNEVjhMU1VZWHYK",
-        "R3NrXzhrc1p4MHlidUZ4ejVTMmdSWWhWV0dyeWIzRllhM1BzZnNhNnNVb1B3NnBaU2htclFEWlIK",
-        "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK",
-        "R3NrX2wzOWNtaWNmU3c3Mjg0RFh4MEJrV0dyeWIzRllScEFJZXhtZ05FUkRaWjkzdFlwOHRJNTUK"
-    ];
+    // Whisper Keys (7 Keys) - Encoded
+    const wKeys = ["R3NrXzJ4ZWlBU1I3S041NG9HZE9tVFZDV0dyeWIzRllQM1RXbm1INEx5RjBMNjhENlZYcnVJZWUK", "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK", "R3NrX0FCb2IxM2t1RjhNTUgwN2xaNVJOV0dyeWIzRlk0QmJ2S2I1MHAxQmRnaVN4bHJ1THhKUnIK", "R3NrX2pPSVdkcFpjSmpJbGNrSUs0ZWZzV0dyeWIzRll5NGlvYXZqTU1HOGdQdkNEVjhMU1VZWHYK", "R3NrXzhrc1p4MHlidUZ4ejVTMmdSWWhWV0dyeWIzRllhM1BzZnNhNnNVb1B3NnBaU2htclFEWlIK", "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK", "R3NrX2wzOWNtaWNmU3c3Mjg0RFh4MEJrV0dyeWIzRllScEFJZXhtZ05FUkRaWjkzdFlwOHRJNTUK"].map(k => atob(k).trim());
 
-    const apiKeys = rawKeys.map(k => atob(k).trim());
+    // Gemini Keys (10 Keys) - Encoded
+    const gKeys = ["QUl6YVN5Q2VVSnI0X3VOWGthWlpud0xidmN5M1BYWDUzTHlxbl9vTQo=", "QUl6YVN5QVJ6NmVEa2k4c3VLbXdsclFkSVphVG54Z0VlVlBLbFhrCg==", "QUl6YVN5Qjd1RGZHaTdPVW9rbVA3SXBOQkdSSDhSR1dTREh6VS1VCg==", "QUl6YVN5QjZyQWN3Zy16a3pWOW9EcUR4czQ2bVo3eTZZY3I1bS1uago=", "QUl6YVN5Q210ZUxNNUJTOEhNNVBSaXN3TVNiOElnSHlGY0p6X1h3Cg==", "QUl6YVN5RGE4UU1yOTI4VXVEWUd3MGN0bmtlV05IeDBkSVc3dm8wCg==", "QUl6YVN5Qm5fd2xGM2d6QjBhWEpPZm1sbWJhUkJqRUhodlBHRnBVCg==", "QUl6YVN5QkoyQXVzUzdrdXZOVDEyM0diR3lla3NIRDd5VUx4OEFBCg==", "QUl6YVN5RFZ2MzFTZHhRTkcweDVTbVgxMGdrZFI1SXFDNmJUblo0Cg==", "QUl6YVN5QVRTd2RsUDltSjNtVG9HcS1jWFcxQXVZNXN3LUM2b2VnCg=="].map(k => atob(k).trim());
 
-    function showName() {
+    function showFileName() {
         const file = document.getElementById('audioFile').files[0];
-        if(file) document.getElementById('fileName').innerText = file.name;
+        if (file) document.getElementById('fileLabel').innerText = file.name;
     }
 
-    async function startTranscription() {
+    async function processAI() {
         const file = document.getElementById('audioFile').files[0];
         if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
         const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
-        const textarea = document.getElementById('result');
+        const engArea = document.getElementById('engText');
+        const mmArea = document.getElementById('mmText');
 
         btn.disabled = true;
-        textarea.style.display = "none";
+        engArea.style.display = mmArea.style.display = "none";
 
-        let success = false;
-        for (let i = 0; i < apiKeys.length; i++) {
-            status.innerText = `Key (${i + 1}/${apiKeys.length}) ဖြင့် စာသားထုတ်နေသည်...`;
+        // Step 1: Whisper Transcribe
+        let engSrt = "";
+        status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
+        for (let key of wKeys) {
             try {
-                const srt = await getTranscription(file, apiKeys[i]);
-                textarea.value = srt;
-                textarea.style.display = "block";
-                status.innerText = "အောင်မြင်စွာ ပြီးစီးပါပြီ!";
-                success = true;
-                break;
-            } catch (err) {
-                console.log(`Key ${i+1} failed`);
-            }
+                engSrt = await getWhisper(file, key);
+                if (engSrt) break;
+            } catch (e) { console.log("Whisper Key Failed"); }
         }
 
-        if (!success) status.innerText = "Error: Key အားလုံး Limit ပြည့်သွားပါပြီ။";
+        if (!engSrt) {
+            status.innerText = "Error: Whisper Key များ အလုပ်မလုပ်ပါ။";
+            btn.disabled = false; return;
+        }
+
+        engArea.value = engSrt;
+        engArea.style.display = "block";
+
+        // Step 2: Gemini Translate
+        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာဘာသာပြန်နေသည်...";
+        let mmSrt = "";
+        for (let key of gKeys) {
+            try {
+                mmSrt = await getGemini(engSrt, key);
+                if (mmSrt) break;
+            } catch (e) { console.log("Gemini Key Failed"); }
+        }
+
+        if (!mmSrt) {
+            status.innerText = "Error: Gemini Key များ အလုပ်မလုပ်ပါ။";
+        } else {
+            mmArea.value = mmSrt;
+            mmArea.style.display = "block";
+            status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
+        }
         btn.disabled = false;
     }
 
-    async function getTranscription(file, key) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("model", "whisper-large-v3");
-        formData.append("response_format", "verbose_json");
-        formData.append("temperature", "0");
+    async function getWhisper(file, key) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("model", "whisper-large-v3");
+        fd.append("response_format", "verbose_json");
+        fd.append("temperature", "0");
 
         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${key}` },
-            body: formData
+            body: fd
         });
-
         const data = await res.json();
-        if (!res.ok) throw new Error("Fail");
+        if (!res.ok) throw new Error();
 
         let srt = "";
         data.segments.forEach((s, i) => {
             srt += `${i+1}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.text.trim()}\n\n`;
         });
         return srt;
+    }
+
+    async function getGemini(text, key) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+        const prompt = `Translate this SRT to Myanmar. Keep timestamps and SRT format exactly same. Just give the result:\n\n${text}`;
+        
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "contents": [{ "parts": [{ "text": prompt }] }] })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error();
+        return data.candidates[0].content.parts[0].text;
     }
 
     function formatTime(seconds) {
