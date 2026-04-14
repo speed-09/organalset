@@ -3,112 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Subtitle Master (Key Verify)</title>
+    <title>AI Subtitle Master (Fixed)</title>
     <style>
         :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
         body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 700px; }
-        h2 { color: var(--accent); text-align: center; margin-top: 0; }
-        .key-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
-        label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 5px; }
-        textarea.keys { width: 100%; height: 80px; background: #010409; color: #ccc; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-size: 11px; resize: none; box-sizing: border-box; }
-        .verify-btn { background: #30363d; color: white; padding: 8px; font-size: 11px; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px; width: 100%; }
-        .verify-btn:hover { background: #444; }
-        .upload-area { border: 2px dashed #30363d; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; margin-bottom: 20px; }
-        #runBtn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; cursor: pointer; }
-        #runBtn:disabled { background: #333; color: #666; }
-        #status { text-align: center; margin: 15px 0; font-size: 14px; color: #fbbf24; }
-        .results { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        textarea.output { width: 100%; height: 300px; background: #010409; color: #7ee787; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; display: none; }
-        .valid { color: #2ea043; font-size: 11px; }
-        .invalid { color: #da3633; font-size: 11px; }
+        .card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 600px; text-align: center; }
+        h2 { color: var(--accent); margin-bottom: 20px; }
+        .input-group { text-align: left; margin-bottom: 20px; }
+        label { font-size: 13px; color: #8b949e; display: block; margin-bottom: 8px; }
+        input[type="text"] { width: 100%; padding: 12px; background: #010409; border: 1px solid #30363d; border-radius: 8px; color: white; box-sizing: border-box; }
+        .upload-area { border: 2px dashed #30363d; padding: 30px; border-radius: 15px; cursor: pointer; margin-bottom: 20px; transition: 0.3s; }
+        .upload-area:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #status { margin: 15px 0; font-size: 14px; color: #fbbf24; }
+        textarea { width: 100%; height: 200px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>🎙️ AI Subtitle Master</h2>
-
-    <div class="key-section">
-        <div>
-            <label>Whisper Keys</label>
-            <textarea id="wKeysInput" class="keys" placeholder="gsk_xxxx..."></textarea>
-            <div id="wStatus"></div>
-        </div>
-        <div>
-            <label>Gemini Keys</label>
-            <textarea id="gKeysInput" class="keys" placeholder="AIzaxxxx..."></textarea>
-            <div id="gStatus"></div>
-        </div>
-    </div>
     
-    <button class="verify-btn" onclick="verifyKeys()">Key များ စစ်ဆေးမည် (Verify Keys)</button>
+    <div class="input-group">
+        <label>Gemini API Key ထည့်ပါ (Whisper Key အဆင်သင့်ပါသည်)</label>
+        <input type="text" id="geminiKey" placeholder="AIzaSy...">
+    </div>
 
     <div class="upload-area" onclick="document.getElementById('audioFile').click()">
         <span id="fileLabel">အသံဖိုင် ရွေးချယ်ပါ</span>
         <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="document.getElementById('fileLabel').innerText=this.files[0].name">
     </div>
 
-    <button id="runBtn" onclick="processAll()" disabled>စာသားထုတ်ပြီး မြန်မာပြန်မည်</button>
+    <button id="runBtn" onclick="processAI()">စတင်လုပ်ဆောင်မည်</button>
     
-    <div id="status">အရင်ဆုံး Key Verify လုပ်ပေးပါ</div>
+    <div id="status">Brave Shield ပိတ်ထားဖို့ မမေ့ပါနဲ့ဗျ</div>
 
-    <div class="results">
-        <textarea id="engOut" class="output" readonly></textarea>
-        <textarea id="mmOut" class="output" readonly></textarea>
-    </div>
+    <textarea id="engOut" readonly placeholder="English SRT"></textarea>
+    <textarea id="mmOut" readonly placeholder="Myanmar SRT"></textarea>
 </div>
 
 <script>
-    let keysVerified = false;
+    // Whisper အတွက် အလုပ်လုပ်မယ့် Key အသစ် (၅) ခုကို စုထည့်ပေးထားပါတယ်
+    const wKeys = [
+        "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK",
+        "R3NrXzBrOHg2OGFmdU9VdzN2TE0xUG5ZV0dyeWIzRlljUVRjNHI1TThXN3J6Ujh2Y08xRWk1NTAK",
+        "R3NrX2tHclRWRE91TzhSbkxOajJ4Y25HV0dyeWIzRllmS2U5bWd6UGFvckxYQnJnb2M3ajB1MTAK",
+        "R3NrX3VpUWZ5R0QxUHBtUkhUOGV2clhPV0dyeWIzRllHdlBaV2o4eHltSGlVTEIzd3VqQXZlbnUK",
+        "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK"
+    ].map(k => atob(k).trim());
 
-    async function verifyKeys() {
-        const wKeys = document.getElementById('wKeysInput').value.trim().split('\n').filter(k => k.trim());
-        const gKeys = document.getElementById('gKeysInput').value.trim().split('\n').filter(k => k.trim());
-
-        if (wKeys.length === 0 || gKeys.length === 0) return alert("Key များ ထည့်ပေးပါ");
-
-        document.getElementById('wStatus').innerHTML = "စစ်ဆေးနေသည်...";
-        document.getElementById('gStatus').innerHTML = "စစ်ဆေးနေသည်...";
-
-        // Verify Whisper Key (Check first one)
-        const wValid = await checkWhisper(wKeys[0].trim());
-        // Verify Gemini Key (Check first one)
-        const gValid = await checkGemini(gKeys[0].trim());
-
-        document.getElementById('wStatus').innerHTML = wValid ? "<span class='valid'>✅ Whisper Key အိုကေသည်</span>" : "<span class='invalid'>❌ Whisper Key မှားနေသည်</span>";
-        document.getElementById('gStatus').innerHTML = gValid ? "<span class='valid'>✅ Gemini Key အိုကေသည်</span>" : "<span class='invalid'>❌ Gemini Key မှားနေသည်</span>";
-
-        if (wValid && gValid) {
-            keysVerified = true;
-            document.getElementById('runBtn').disabled = false;
-            document.getElementById('status').innerText = "Key များ အိုကေပါသည်။ ဖိုင်ရွေးပြီး စတင်နိုင်ပါပြီ။";
-        }
-    }
-
-    async function checkWhisper(key) {
-        try {
-            const res = await fetch("https://api.groq.com/openai/v1/models", {
-                headers: {"Authorization": `Bearer ${key}`}
-            });
-            return res.ok;
-        } catch (e) { return false; }
-    }
-
-    async function checkGemini(key) {
-        try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-            return res.ok;
-        } catch (e) { return false; }
-    }
-
-    async function processAll() {
-        if (!keysVerified) return alert("Key Verify အရင်လုပ်ပါ");
+    async function processAI() {
         const file = document.getElementById('audioFile').files[0];
-        if (!file) return alert("ဖိုင်ရွေးပါ");
+        const gKey = document.getElementById('geminiKey').value.trim();
 
-        const wKeysRaw = document.getElementById('wKeysInput').value.trim().split('\n').filter(k => k.trim());
-        const gKeysRaw = document.getElementById('gKeysInput').value.trim().split('\n').filter(k => k.trim());
+        if (!file || !gKey) return alert("ဖိုင်နှင့် Gemini Key ကို ထည့်ပေးပါ");
 
         const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
@@ -116,15 +65,16 @@
 
         status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
         let engSrt = "";
-        for (let k of wKeysRaw) {
+        
+        for (let k of wKeys) {
             try {
-                engSrt = await getWhisper(file, k.trim());
+                engSrt = await getWhisper(file, k);
                 if (engSrt) break;
-            } catch (e) {}
+            } catch (e) { console.log("Whisper Key rotation..."); }
         }
 
         if (!engSrt) {
-            status.innerText = "Whisper Error တက်နေပါသည်။";
+            status.innerText = "Error: Whisper Keys များ အလုပ်မလုပ်ပါ။ ခဏနေမှ ပြန်စမ်းပါ။";
             btn.disabled = false; return;
         }
 
@@ -132,18 +82,13 @@
         document.getElementById('engOut').style.display = "block";
 
         status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာပြန်နေသည်...";
-        let mmSrt = "";
-        for (let k of gKeysRaw) {
-            try {
-                mmSrt = await getGemini(engSrt, k.trim());
-                if (mmSrt) break;
-            } catch (e) {}
-        }
-
-        if (mmSrt) {
+        try {
+            const mmSrt = await getGemini(engSrt, gKey);
             document.getElementById('mmOut').value = mmSrt;
             document.getElementById('mmOut').style.display = "block";
-            status.innerText = "အားလုံး ပြီးစီးပါပြီ!";
+            status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
+        } catch (e) {
+            status.innerText = "Error: Gemini Key မှားနေပါသည် သို့မဟုတ် Limit ပြည့်နေပါသည်။";
         }
         btn.disabled = false;
     }
@@ -158,6 +103,7 @@
             headers: {"Authorization": `Bearer ${key}`},
             body: fd
         });
+        if(!res.ok) throw new Error();
         const data = await res.json();
         let srt = "";
         data.segments.forEach((s, i) => {
@@ -170,7 +116,7 @@
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate to Myanmar SRT:\n\n" + text }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate to Myanmar SRT format:\n\n" + text }] }] })
         });
         const data = await res.json();
         return data.candidates[0].content.parts[0].text;
@@ -182,6 +128,5 @@
         return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())},${pad(d.getUTCMilliseconds(), 3)}`;
     }
 </script>
-
 </body>
 </html>
