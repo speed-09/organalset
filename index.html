@@ -1,55 +1,194 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="my">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master - Auto Rotation</title>
+    <title>Whisper AI - Premium SRT Tool</title>
     <style>
-        :root { --primary: #00ffcc; --bg: #0d1117; --card: #161b22; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #c9d1d9; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .container { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid #30363d; width: 100%; max-width: 550px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        h2 { color: var(--primary); text-align: center; margin-bottom: 25px; }
-        label { display: block; margin-bottom: 8px; font-size: 14px; color: #8b949e; }
-        input[type="file"], button { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; font-size: 15px; }
-        button { background: #238636; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { background: #2ea043; }
-        #dlBtn { background: #0ea5e9; display: none; margin-top: 10px; }
-        .progress-bar { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; display: none; margin-bottom: 10px; }
-        .fill { width: 0%; height: 100%; background: var(--primary); transition: 0.4s; }
-        #status { text-align: center; font-size: 14px; margin: 10px 0; color: #fbbf24; }
-        textarea { width: 100%; height: 280px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 8px; font-family: monospace; display: none; line-height: 1.6; }
-        .key-info { font-size: 11px; color: #484f58; text-align: right; margin-top: -10px; margin-bottom: 10px; }
+        :root {
+            --accent: #00f2fe;
+            --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            --bg: #0b0e14;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at top right, #1a2a3a, var(--bg));
+            color: #e6edf3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(0, 242, 254, 0.03);
+        }
+
+        input[type="file"] { display: none; }
+
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--border);
+            border-radius: 50px;
+            font-size: 14px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .custom-file-upload:hover { background: rgba(255,255,255,0.2); }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent-gradient);
+            color: #000;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s transform, 0.3s box-shadow;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 242, 254, 0.4);
+        }
+
+        button:disabled {
+            background: #444;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: 0.4s;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 20px;
+            padding: 15px;
+            color: #7ee787;
+            font-family: 'Courier New', monospace;
+            display: none;
+            box-sizing: border-box;
+            resize: none;
+        }
+
+        #dlBtn {
+            background: none;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            margin-top: 15px;
+            box-shadow: none;
+        }
+
+        #dlBtn:hover {
+            background: var(--accent);
+            color: #000;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🎙️ Whisper SRT Master</h2>
+    <h2>🎙️ Whisper SRT Pro</h2>
     
-    <label>အသံဖိုင် ရွေးချယ်ပါ (MP3, WAV, etc.)</label>
-    <input type="file" id="audioFile" accept="audio/*">
+    <input type="hidden" id="apiKey" value="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">
 
-    <button id="runBtn" onclick="generateSRT()">SRT စတင်ထုတ်ယူမည်</button>
+    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
+        <span id="fileNameDisplay">အသံဖိုင် (Audio) ရွေးချယ်ပါ</span><br>
+        <label class="custom-file-upload">ဖိုင်ရှာရန်</label>
+        <input type="file" id="audioFile" accept="audio/*" onchange="updateFileName()">
+    </div>
+
+    <button id="runBtn" onclick="generateSRT()">စာသားစတင်ထုတ်ယူမည်</button>
     
-    <div class="progress-bar" id="pBar"><div class="fill" id="pFill"></div></div>
-    <div id="status">အသင့်ဖြစ်ပါပြီ</div>
-    <div class="key-info" id="keyTag">Auto-rotation Active</div>
+    <div class="progress-bar" id="pBar">
+        <div class="fill" id="pFill"></div>
+    </div>
+    <div id="status">အသုံးပြုရန်အသင့်ဖြစ်ပါပြီ</div>
     
-    <textarea id="output" readonly spellcheck="false"></textarea>
-    <button id="dlBtn" onclick="downloadSrt()">📥 SRT ဖိုင်ကို သိမ်းဆည်းမည်</button>
+    <textarea id="output" readonly></textarea>
+    <button id="dlBtn" onclick="downloadSrt()">📥 SRT ကို သိမ်းဆည်းမည်</button>
 </div>
 
 <script>
-    // သင်ပေးထားတဲ့ API Keys များကို အလှည့်ကျသုံးရန် Array ထဲထည့်ထားခြင်း
-    const apiKeys = [
-        "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",
-        
-    ];
-
-    let currentKeyIndex = 0;
+    function updateFileName() {
+        const file = document.getElementById('audioFile').files[0];
+        if (file) document.getElementById('fileNameDisplay').innerText = file.name;
+    }
 
     async function generateSRT() {
         const file = document.getElementById('audioFile').files[0];
+        const key = document.getElementById('apiKey').value;
         if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
         const btn = document.getElementById('runBtn');
@@ -61,10 +200,8 @@
 
         btn.disabled = true;
         pBar.style.display = 'block';
-        output.style.display = 'none';
-        dlBtn.style.display = 'none';
-        status.innerText = "စတင်နေပါပြီ... (Key #" + (currentKeyIndex + 1) + " ကိုသုံးနေသည်)";
-        pFill.style.width = "30%";
+        pFill.style.width = "40%";
+        status.innerText = "AI မှ စကားလုံးများကို ဖတ်နေပါသည်...";
 
         const formData = new FormData();
         formData.append("file", file);
@@ -74,57 +211,29 @@
         try {
             const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${apiKeys[currentKeyIndex]}` },
+                headers: { "Authorization": `Bearer ${key}` },
                 body: formData
             });
 
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || "API Error");
 
-            // Rate Limit သို့မဟုတ် Error ဖြစ်လျှင် နောက် Key တစ်ခုသို့ ပြောင်းရန်
-            if (!response.ok) {
-                if (currentKeyIndex < apiKeys.length - 1) {
-                    currentKeyIndex++;
-                    status.innerText = "Limit ပြည့်သွားသဖြင့် Key အသစ်ဖြင့် ထပ်မံကြိုးစားနေသည်...";
-                    return generateSRT(); 
-                } else {
-                    throw new Error(data.error?.message || "Keys အားလုံး Limit ပြည့်သွားပါပြီ။");
-                }
-            }
+            let finalSRT = "";
+            data.segments.forEach((s, i) => {
+                finalSRT += `${i+1}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.text.trim()}\n\n`;
+            });
 
-            const srtResult = processSegments(data.segments);
-            output.value = srtResult;
+            output.value = finalSRT;
             output.style.display = "block";
             dlBtn.style.display = "block";
             status.innerText = "အောင်မြင်စွာ ပြီးစီးပါပြီ!";
             pFill.style.width = "100%";
-
         } catch (e) {
             status.innerText = "Error: " + e.message;
+            pFill.style.background = "#ff4d4d";
         } finally {
             btn.disabled = false;
         }
-    }
-
-    function processSegments(segments) {
-        let finalSRT = "";
-        let srtIndex = 1;
-
-        for (let i = 0; i < segments.length; i++) {
-            let s = segments[i];
-            let start = formatTime(s.start);
-            let end = formatTime(s.end);
-            let text = s.text.trim();
-
-            if (text.includes(',')) {
-                text = text.replace(/,\s*/g, ',\n');
-                let lines = text.split('\n');
-                if (lines.length > 2) text = lines.slice(0, 2).join('\n');
-            }
-
-            finalSRT += `${srtIndex}\n${start} --> ${end}\n${text}\n\n`;
-            srtIndex++;
-        }
-        return finalSRT;
     }
 
     function formatTime(seconds) {
@@ -141,10 +250,8 @@
         const blob = new Blob([content], { type: 'text/srt' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = "original_subtitle.srt";
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        a.href = url; a.download = "subtitle.srt";
+        a.click();
     }
 </script>
 
