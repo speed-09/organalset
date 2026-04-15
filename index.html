@@ -3,73 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master - Original Standard</title>
+    <title>Whisper SRT Master - Auto Rotation</title>
     <style>
-        :root { 
-            --primary: #00f2fe; 
-            --bg: #0d1117; 
-            --card: #161b22; 
-            --text: #c9d1d9;
-            --success: #238636;
-        }
-
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: var(--bg); 
-            color: var(--text); 
-            display: flex; 
-            justify-content: center; 
-            padding: 20px;
-            margin: 0;
-        }
-
-        .container { 
-            background: var(--card); 
-            padding: 30px; 
-            border-radius: 15px; 
-            border: 1px solid #30363d;
-            width: 100%; 
-            max-width: 500px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        h2 { color: var(--primary); text-align: center; margin-bottom: 20px; }
-        
-        .file-box {
-            border: 2px dashed #30363d;
-            padding: 20px;
-            text-align: center;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
-
-        input[type="file"] { width: 100%; color: #8b949e; }
-
-        button { 
-            width: 100%; padding: 12px; border-radius: 8px; border: none; 
-            font-weight: bold; cursor: pointer; transition: 0.3s;
-            margin-bottom: 10px;
-        }
-
-        #runBtn { background: var(--success); color: white; }
-        #runBtn:hover { background: #2ea043; }
-        #runBtn:disabled { background: #21262d; cursor: not-allowed; }
-
-        #dlBtn { background: #0ea5e9; color: white; display: none; }
-
-        .status-area { text-align: center; margin: 15px 0; font-size: 14px; }
-        #status { color: #fbbf24; }
-
-        textarea { 
-            width: 100%; height: 250px; background: #010409; color: #7ee787; 
-            border: 1px solid #30363d; padding: 15px; border-radius: 10px; 
-            font-family: 'Courier New', monospace; display: none;
-            resize: none; box-sizing: border-box; margin-top: 15px;
-        }
-
-        .progress { height: 4px; background: #21262d; width: 100%; display: none; border-radius: 2px; }
-        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.3s; }
+        :root { --primary: #00ffcc; --bg: #0d1117; --card: #161b22; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #c9d1d9; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid #30363d; width: 100%; max-width: 550px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: var(--primary); text-align: center; margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #8b949e; }
+        input[type="file"], button { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; font-size: 15px; }
+        button { background: #238636; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        #dlBtn { background: #0ea5e9; display: none; margin-top: 10px; }
+        .progress-bar { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; display: none; margin-bottom: 10px; }
+        .fill { width: 0%; height: 100%; background: var(--primary); transition: 0.4s; }
+        #status { text-align: center; font-size: 14px; margin: 10px 0; color: #fbbf24; }
+        textarea { width: 100%; height: 280px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 8px; font-family: monospace; display: none; line-height: 1.6; }
+        .key-info { font-size: 11px; color: #484f58; text-align: right; margin-top: -10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -77,25 +26,23 @@
 <div class="container">
     <h2>🎙️ Whisper SRT Master</h2>
     
-    <div class="file-box">
-        <input type="file" id="audioFile" accept="audio/*">
-    </div>
+    <label>အသံဖိုင် ရွေးချယ်ပါ (MP3, WAV, etc.)</label>
+    <input type="file" id="audioFile" accept="audio/*">
 
-    <button id="runBtn" onclick="processAudio()">SRT စတင်ထုတ်ယူမည်</button>
+    <button id="runBtn" onclick="generateSRT()">SRT စတင်ထုတ်ယူမည်</button>
     
-    <div class="progress" id="pBar"><div class="progress-fill" id="pFill"></div></div>
+    <div class="progress-bar" id="pBar"><div class="fill" id="pFill"></div></div>
+    <div id="status">အသင့်ဖြစ်ပါပြီ</div>
+    <div class="key-info" id="keyTag">Auto-rotation Active</div>
     
-    <div class="status-area">
-        <div id="status">Ready</div>
-    </div>
-    
-    <textarea id="output" readonly></textarea>
+    <textarea id="output" readonly spellcheck="false"></textarea>
     <button id="dlBtn" onclick="downloadSrt()">📥 SRT ဖိုင်ကို သိမ်းဆည်းမည်</button>
 </div>
 
 <script>
-    // API Keys Rotation List
-    const keys = [
+    // သင်ပေးထားတဲ့ API Keys များကို အလှည့်ကျသုံးရန် Array ထဲထည့်ထားခြင်း
+    const apiKeys = [
+        "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",
         "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",
         "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",
         "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",
@@ -105,96 +52,49 @@
         "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"
     ];
 
-    let currentKeyIdx = 0;
+    let currentKeyIndex = 0;
 
-    async function processAudio() {
+    async function generateSRT() {
         const file = document.getElementById('audioFile').files[0];
-        if (!file) return alert("ဖိုင်ရွေးပါ");
+        if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
-        const runBtn = document.getElementById('runBtn');
+        const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
         const pBar = document.getElementById('pBar');
         const pFill = document.getElementById('pFill');
         const output = document.getElementById('output');
         const dlBtn = document.getElementById('dlBtn');
 
-        runBtn.disabled = true;
+        btn.disabled = true;
         pBar.style.display = 'block';
-        pFill.style.width = '20%';
         output.style.display = 'none';
         dlBtn.style.display = 'none';
-        status.innerText = "Transcribing... (Key Rotation Active)";
+        status.innerText = "စတင်နေပါပြီ... (Key #" + (currentKeyIndex + 1) + " ကိုသုံးနေသည်)";
+        pFill.style.width = "30%";
 
-        // Try keys one by one if error occurs
-        let success = false;
-        for (let i = 0; i < keys.length; i++) {
-            const currentKey = keys[currentKeyIdx];
-            try {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("model", "whisper-large-v3");
-                formData.append("response_format", "verbose_json");
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("model", "whisper-large-v3");
+        formData.append("response_format", "verbose_json");
 
-                const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${currentKey}` },
-                    body: formData
-                });
+        try {
+            const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${apiKeys[currentKeyIndex]}` },
+                body: formData
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok) {
-                    const srt = formatToSRT(data.segments);
-                    output.value = srt;
-                    output.style.display = 'block';
-                    dlBtn.style.display = 'block';
-                    status.innerText = "Success!";
-                    pFill.style.width = '100%';
-                    success = true;
-                    break; 
+            // Rate Limit သို့မဟုတ် Error ဖြစ်လျှင် နောက် Key တစ်ခုသို့ ပြောင်းရန်
+            if (!response.ok) {
+                if (currentKeyIndex < apiKeys.length - 1) {
+                    currentKeyIndex++;
+                    status.innerText = "Limit ပြည့်သွားသဖြင့် Key အသစ်ဖြင့် ထပ်မံကြိုးစားနေသည်...";
+                    return generateSRT(); 
                 } else {
-                    console.error(`Key ${currentKeyIdx} failed. Moving to next.`);
-                    currentKeyIdx = (currentKeyIdx + 1) % keys.length;
+                    throw new Error(data.error?.message || "Keys အားလုံး Limit ပြည့်သွားပါပြီ။");
                 }
-            } catch (e) {
-                currentKeyIdx = (currentKeyIdx + 1) % keys.length;
             }
-        }
 
-        if (!success) {
-            status.innerText = "Error: All keys exhausted or network error.";
-        }
-        runBtn.disabled = false;
-    }
-
-    // Original SRT Formatting Logic
-    function formatToSRT(segments) {
-        return segments.map((s, index) => {
-            const start = formatSRTTime(s.start);
-            const end = formatSRTTime(s.end);
-            return `${index + 1}\n${start} --> ${end}\n${s.text.trim()}\n`;
-        }).join('\n');
-    }
-
-    function formatSRTTime(seconds) {
-        const date = new Date(seconds * 1000);
-        const hh = String(Math.floor(seconds / 3600)).padStart(2, '0');
-        const mm = String(date.getUTCMinutes()).padStart(2, '0');
-        const ss = String(date.getUTCSeconds()).padStart(2, '0');
-        const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
-        return `${hh}:${mm}:${ss},${ms}`;
-    }
-
-    function downloadSrt() {
-        const content = document.getElementById('output').value;
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "original_whisper.srt";
-        a.click();
-    }
-</script>
-
-</body>
-</html>
+        ...
