@@ -3,108 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Subtitle Master (Auto-Key)</title>
+    <title>AI Master Pro - Multi Key Input</title>
     <style>
         :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
-        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 600px; text-align: center; }
-        h2 { color: var(--accent); margin-bottom: 5px; }
-        .upload-area { border: 2px dashed #30363d; padding: 30px; border-radius: 15px; cursor: pointer; margin: 20px 0; transition: 0.3s; }
-        .upload-area:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
-        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; font-size: 16px; cursor: pointer; }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; }
-        #status { margin: 15px 0; font-size: 14px; color: #fbbf24; font-weight: bold; }
-        .result-container { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-        .box { flex: 1; min-width: 250px; text-align: left; }
-        label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 5px; }
-        textarea { width: 100%; height: 300px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; display: none; }
+        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 15px; min-height: 100vh; margin: 0; }
+        .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 650px; }
+        h2 { color: var(--accent); text-align: center; margin-top: 0; font-size: 22px; }
+        .key-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        label { font-size: 11px; color: #8b949e; display: block; margin-bottom: 5px; }
+        textarea.key-input { width: 100%; height: 90px; background: #010409; color: #ccc; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-size: 11px; resize: none; box-sizing: border-box; }
+        .upload-area { border: 2px dashed #30363d; padding: 25px; border-radius: 12px; text-align: center; cursor: pointer; margin-bottom: 15px; }
+        button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; cursor: pointer; font-size: 15px; }
+        button:disabled { background: #333; color: #666; }
+        #status { text-align: center; margin: 15px 0; font-size: 13px; color: #fbbf24; }
+        .results { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        textarea.output { width: 100%; height: 280px; background: #010409; color: #7ee787; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; display: none; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🎙️ AI Subtitle Master</h2>
-    <p style="font-size: 12px; color: #8b949e;">Whisper (English) + Gemini (Myanmar) Auto-Translation</p>
+    <h2>🎙️ AI Master Pro</h2>
 
-    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
-        <span id="fileLabel">အသံဖိုင် ရွေးချယ်ရန် နှိပ်ပါ</span>
-        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="showFileName()">
+    <div class="key-container">
+        <div>
+            <label>Whisper Keys (တစ်ခုစီခြားထည့်ပါ)</label>
+            <textarea id="wKeys" class="key-input" placeholder="gsk_xxxx...&#10;gsk_yyyy..."></textarea>
+        </div>
+        <div>
+            <label>Gemini Keys (တစ်ခုစီခြားထည့်ပါ)</label>
+            <textarea id="gKeys" class="key-input" placeholder="AIzaxxxx...&#10;AIzayyyy..."></textarea>
+        </div>
     </div>
 
-    <button id="runBtn" onclick="processAI()">စတင်လုပ်ဆောင်မည်</button>
-    
-    <div id="status">အဆင်သင့်ဖြစ်ပါပြီ</div>
+    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
+        <span id="label">အသံဖိုင် ရွေးချယ်ပါ</span>
+        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="document.getElementById('label').innerText=this.files[0].name">
+    </div>
 
-    <div class="result-container">
-        <div class="box">
-            <label>English SRT (Original)</label>
-            <textarea id="engText" readonly></textarea>
-        </div>
-        <div class="box">
-            <label>Myanmar SRT (Translated)</label>
-            <textarea id="mmText" readonly></textarea>
-        </div>
+    <button id="runBtn" onclick="processAll()">စတင်လုပ်ဆောင်မည်</button>
+    
+    <div id="status">Key များကို ထည့်သွင်းပြီး ဖိုင်ရွေးချယ်ပါ</div>
+
+    <div class="results">
+        <textarea id="engOut" class="output" readonly></textarea>
+        <textarea id="mmOut" class="output" readonly></textarea>
     </div>
 </div>
 
 <script>
-    // Whisper Keys (7 Keys) - Encoded
-    const wKeys = ["R3NrXzJ4ZWlBU1I3S041NG9HZE9tVFZDV0dyeWIzRllQM1RXbm1INEx5RjBMNjhENlZYcnVJZWUK", "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK", "R3NrX0FCb2IxM2t1RjhNTUgwN2xaNVJOV0dyeWIzRlk0QmJ2S2I1MHAxQmRnaVN4bHJ1THhKUnIK", "R3NrX2pPSVdkcFpjSmpJbGNrSUs0ZWZzV0dyeWIzRll5NGlvYXZqTU1HOGdQdkNEVjhMU1VZWHYK", "R3NrXzhrc1p4MHlidUZ4ejVTMmdSWWhWV0dyeWIzRllhM1BzZnNhNnNVb1B3NnBaU2htclFEWlIK", "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK", "R3NrX2wzOWNtaWNmU3c3Mjg0RFh4MEJrV0dyeWIzRllScEFJZXhtZ05FUkRaWjkzdFlwOHRJNTUK"].map(k => atob(k).trim());
-
-    // Gemini Keys (10 Keys) - Encoded
-    const gKeys = ["QUl6YVN5Q2VVSnI0X3VOWGthWlpud0xidmN5M1BYWDUzTHlxbl9vTQo=", "QUl6YVN5QVJ6NmVEa2k4c3VLbXdsclFkSVphVG54Z0VlVlBLbFhrCg==", "QUl6YVN5Qjd1RGZHaTdPVW9rbVA3SXBOQkdSSDhSR1dTREh6VS1VCg==", "QUl6YVN5QjZyQWN3Zy16a3pWOW9EcUR4czQ2bVo3eTZZY3I1bS1uago=", "QUl6YVN5Q210ZUxNNUJTOEhNNVBSaXN3TVNiOElnSHlGY0p6X1h3Cg==", "QUl6YVN5RGE4UU1yOTI4VXVEWUd3MGN0bmtlV05IeDBkSVc3dm8wCg==", "QUl6YVN5Qm5fd2xGM2d6QjBhWEpPZm1sbWJhUkJqRUhodlBHRnBVCg==", "QUl6YVN5QkoyQXVzUzdrdXZOVDEyM0diR3lla3NIRDd5VUx4OEFBCg==", "QUl6YVN5RFZ2MzFTZHhRTkcweDVTbVgxMGdrZFI1SXFDNmJUblo0Cg==", "QUl6YVN5QVRTd2RsUDltSjNtVG9HcS1jWFcxQXVZNXN3LUM2b2VnCg=="].map(k => atob(k).trim());
-
-    function showFileName() {
+    async function processAll() {
         const file = document.getElementById('audioFile').files[0];
-        if (file) document.getElementById('fileLabel').innerText = file.name;
-    }
+        const wList = document.getElementById('wKeys').value.trim().split('\n').filter(k => k.trim());
+        const gList = document.getElementById('gKeys').value.trim().split('\n').filter(k => k.trim());
 
-    async function processAI() {
-        const file = document.getElementById('audioFile').files[0];
-        if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
+        if (!file || wList.length === 0 || gList.length === 0) {
+            return alert("Key များနှင့် ဖိုင်ကို အရင်စုံအောင် ထည့်ပေးပါဗျ။");
+        }
 
         const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
-        const engArea = document.getElementById('engText');
-        const mmArea = document.getElementById('mmText');
-
         btn.disabled = true;
-        engArea.style.display = mmArea.style.display = "none";
 
-        // Step 1: Whisper Transcribe
-        let engSrt = "";
+        // Step 1: Whisper Rotation
         status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
-        for (let key of wKeys) {
+        let engSrt = "";
+        for (let i = 0; i < wList.length; i++) {
+            status.innerText = `Whisper: Key (${i+1}/${wList.length}) ကို သုံးနေသည်...`;
             try {
-                engSrt = await getWhisper(file, key);
+                engSrt = await getWhisper(file, wList[i].trim());
                 if (engSrt) break;
-            } catch (e) { console.log("Whisper Key Failed"); }
+            } catch (e) { console.log(`W-Key ${i+1} fail`); }
         }
 
         if (!engSrt) {
-            status.innerText = "Error: Whisper Key များ အလုပ်မလုပ်ပါ။";
+            status.innerText = "Whisper Error: Key အားလုံး မအောင်မြင်ပါ။ Brave Shield ပိတ်ထားလား စစ်ပေးပါ။";
             btn.disabled = false; return;
         }
 
-        engArea.value = engSrt;
-        engArea.style.display = "block";
+        document.getElementById('engOut').value = engSrt;
+        document.getElementById('engOut').style.display = "block";
 
-        // Step 2: Gemini Translate
-        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာဘာသာပြန်နေသည်...";
+        // Step 2: Gemini Rotation
+        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာပြန်နေသည်...";
         let mmSrt = "";
-        for (let key of gKeys) {
+        for (let i = 0; i < gList.length; i++) {
+            status.innerText = `Gemini: Key (${i+1}/${gList.length}) ကို သုံးနေသည်...`;
             try {
-                mmSrt = await getGemini(engSrt, key);
+                mmSrt = await getGemini(engSrt, gList[i].trim());
                 if (mmSrt) break;
-            } catch (e) { console.log("Gemini Key Failed"); }
+            } catch (e) { console.log(`G-Key ${i+1} fail`); }
         }
 
-        if (!mmSrt) {
-            status.innerText = "Error: Gemini Key များ အလုပ်မလုပ်ပါ။";
-        } else {
-            mmArea.value = mmSrt;
-            mmArea.style.display = "block";
+        if (mmSrt) {
+            document.getElementById('mmOut').value = mmSrt;
+            document.getElementById('mmOut').style.display = "block";
             status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
+        } else {
+            status.innerText = "Gemini Error: ဘာသာပြန်မှု မအောင်မြင်ပါ။";
         }
         btn.disabled = false;
     }
@@ -114,16 +110,13 @@
         fd.append("file", file);
         fd.append("model", "whisper-large-v3");
         fd.append("response_format", "verbose_json");
-        fd.append("temperature", "0");
-
         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${key}` },
+            headers: {"Authorization": `Bearer ${key}`},
             body: fd
         });
+        if(!res.ok) throw new Error();
         const data = await res.json();
-        if (!res.ok) throw new Error();
-
         let srt = "";
         data.segments.forEach((s, i) => {
             srt += `${i+1}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.text.trim()}\n\n`;
@@ -132,26 +125,20 @@
     }
 
     async function getGemini(text, key) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
-        const prompt = `Translate this SRT to Myanmar. Keep timestamps and SRT format exactly same. Just give the result:\n\n${text}`;
-        
-        const res = await fetch(url, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "contents": [{ "parts": [{ "text": prompt }] }] })
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate to Myanmar SRT format. Keep timestamps unchanged:\n\n" + text }] }] })
         });
+        if(!res.ok) throw new Error();
         const data = await res.json();
-        if (!res.ok) throw new Error();
         return data.candidates[0].content.parts[0].text;
     }
 
-    function formatTime(seconds) {
-        const date = new Date(seconds * 1000);
-        const hh = String(date.getUTCHours()).padStart(2, '0');
-        const mm = String(date.getUTCMinutes()).padStart(2, '0');
-        const ss = String(date.getUTCSeconds()).padStart(2, '0');
-        const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
-        return `${hh}:${mm}:${ss},${ms}`;
+    function formatTime(s) {
+        const d = new Date(s * 1000);
+        const pad = (n, l=2) => String(n).padStart(l, '0');
+        return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())},${pad(d.getUTCMilliseconds(), 3)}`;
     }
 </script>
 
