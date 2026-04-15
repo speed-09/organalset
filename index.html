@@ -1,144 +1,128 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="my">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whisper SRT Master Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .progress-glow { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .input-style { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; width: 100%; color: white; outline: none; transition: 0.3s; }
+        .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+        .btn-pro { background: linear-gradient(90deg, #2563eb, #059669); font-weight: bold; padding: 14px; border-radius: 12px; width: 100%; transition: 0.3s; }
+        .btn-pro:hover { opacity: 0.9; transform: translateY(-2px); }
+        .progress-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+        .progress-inner { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: 0.4s; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="glass max-w-2xl w-full rounded-3xl p-8 shadow-2xl">
-        <h1 class="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+    <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
+        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
             Whisper SRT Master Pro
         </h1>
-        <p class="text-gray-400 text-center mb-8 text-sm">Convert MP3 to Original SRT with AI</p>
 
-        <div class="space-y-6">
-            <div class="border-2 border-dashed border-gray-600 rounded-2xl p-10 text-center hover:border-blue-500 transition-all cursor-pointer" id="dropZone">
-                <input type="file" id="audioInput" accept="audio/*" class="hidden">
-                <label for="audioInput" class="cursor-pointer">
-                    <div class="text-5xl mb-4">🎵</div>
-                    <p class="text-gray-300" id="fileName">အသံဖိုင် ရွေးချယ်ပါ (သို့) Drag ဆွဲထည့်ပါ</p>
-                </label>
+        <div class="space-y-5">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Enter Groq API Key (gsk_...)</label>
+                <input type="password" id="apiKeyInput" placeholder="Paste your API Key here" class="input-style">
             </div>
 
-            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all transform active:scale-95 shadow-lg">
-                🚀 Start Transcription
-            </button>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 Audio File</label>
+                <input type="file" id="audioFile" accept="audio/*" class="input-style text-sm">
+            </div>
 
-            <div id="progressContainer" class="hidden space-y-4">
-                <div class="flex justify-between text-sm">
-                    <span id="status">Processing...</span>
+            <button id="processBtn" class="btn-pro shadow-lg">🚀 Check & Start Production</button>
+
+            <div id="statusBox" class="hidden">
+                <div class="flex justify-between text-xs mb-1">
+                    <span id="statusMsg" class="text-blue-300">Checking Key...</span>
                     <span id="timer">0s</span>
                 </div>
-                <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-                    <div id="progressBar" class="bg-blue-500 h-full w-0 transition-all duration-300 progress-glow"></div>
+                <div class="progress-bar">
+                    <div id="progressInner" class="progress-inner"></div>
                 </div>
-            </div>
-
-            <div id="resultArea" class="hidden">
-                <textarea id="srtOutput" class="w-full h-48 bg-gray-900 border border-gray-700 rounded-xl p-4 text-xs font-mono text-emerald-400 focus:outline-none"></textarea>
             </div>
         </div>
     </div>
 
     <script>
-        const apiKeys = [
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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",
-            "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"
-        ];
-
-        let timerInterval;
-
-        // format timestamp for SRT
-        function formatSRTTime(seconds) {
-            const date = new Date(0);
+        function formatSRT(seconds) {
+            let date = new Date(0);
             date.setSeconds(seconds);
-            const hh = date.getUTCHours().toString().padStart(2, '0');
-            const mm = date.getUTCMinutes().toString().padStart(2, '0');
-            const ss = date.getUTCSeconds().toString().padStart(2, '0');
-            const ms = ((seconds % 1) * 1000).toFixed(0).padStart(3, '0');
-            return `${hh}:${mm}:${ss},${ms}`;
+            let timeStr = date.toISOString().substr(11, 8);
+            let ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
+            return timeStr + "," + ms;
         }
 
-        document.getElementById('audioInput').onchange = (e) => {
-            document.getElementById('fileName').innerText = e.target.files[0].name;
-        };
+        document.getElementById('processBtn').onclick = async () => {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const fileInput = document.getElementById('audioFile');
+            const btn = document.getElementById('processBtn');
+            const statusBox = document.getElementById('statusBox');
+            const bar = document.getElementById('progressInner');
+            const msg = document.getElementById('statusMsg');
+            const timerLabel = document.getElementById('timer');
 
-        document.getElementById('startBtn').onclick = async () => {
-            const file = document.getElementById('audioInput').files[0];
-            if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
+            if (!key) return alert("API Key ထည့်ပေးပါဦး");
+            if (fileInput.files.length === 0) return alert("အသံဖိုင် ရွေးချယ်ပါ");
 
             // Reset UI
-            document.getElementById('progressContainer').classList.remove('hidden');
-            document.getElementById('resultArea').classList.add('hidden');
-            const pBar = document.getElementById('progressBar');
-            const status = document.getElementById('status');
-            const timerDisplay = document.getElementById('timer');
+            btn.disabled = true;
+            statusBox.classList.remove('hidden');
+            bar.style.width = "0%";
             
-            let seconds = 0;
-            timerInterval = setInterval(() => {
-                seconds++;
-                timerDisplay.innerText = seconds + "s";
-                if(seconds < 90) pBar.style.width = seconds + "%";
+            let timeElapsed = 0;
+            const timerInterval = setInterval(() => {
+                timeElapsed++;
+                timerLabel.innerText = timeElapsed + "s";
+                if(timeElapsed < 90) bar.style.width = timeElapsed + "%";
             }, 1000);
 
-            // Key Rotation
-            const randomKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", fileInput.files[0]);
             formData.append("model", "whisper-large-v3");
             formData.append("response_format", "verbose_json");
 
             try {
-                status.innerText = "Transcribing with Whisper AI...";
-                const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                msg.innerText = "Connecting to Groq AI...";
+                const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${randomKey}` },
+                    headers: { "Authorization": `Bearer ${key}` },
                     body: formData
                 });
 
-                const data = await response.json();
-                clearInterval(timerInterval);
-                pBar.style.width = "100%";
+                const data = await res.json();
 
-                if (data.segments) {
-                    let srtContent = "";
+                if (res.ok) {
+                    clearInterval(timerInterval);
+                    bar.style.width = "100%";
+                    msg.innerText = "✅ Done! Downloading SRT...";
+
+                    let srt = "";
                     data.segments.forEach((seg, i) => {
-                        srtContent += `${i + 1}\n${formatSRTTime(seg.start)} --> ${formatSRTTime(seg.end)}\n${seg.text.trim()}\n\n`;
+                        srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
                     });
 
-                    document.getElementById('srtOutput').value = srtContent;
-                    document.getElementById('resultArea').classList.remove('hidden');
-                    status.innerText = "✅ Success!";
-
                     // Auto Download
-                    const blob = new Blob([srtContent], { type: 'text/srt' });
-                    const url = window.URL.createObjectURL(blob);
+                    const blob = new Blob([srt], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = file.name.replace(/\.[^/.]+$/, "") + ".srt";
-                    document.body.appendChild(a);
+                    a.download = fileInput.files[0].name.split('.')[0] + ".srt";
                     a.click();
-                    window.URL.revokeObjectURL(url);
                 } else {
-                    alert("Error: " + JSON.stringify(data));
+                    throw new Error(data.error.message || "API Key Error");
                 }
             } catch (err) {
-                alert("Request Failed!");
                 clearInterval(timerInterval);
+                alert("❌ Error: " + err.message + "\n\nKey မှန်မမှန် သေချာပြန်စစ်ပေးပါ။");
+                msg.innerText = "Failed.";
+                msg.classList.replace('text-blue-300', 'text-red-400');
+            } finally {
+                btn.disabled = false;
             }
         };
     </script>
