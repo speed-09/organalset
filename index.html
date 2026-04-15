@@ -1,156 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Whisper SRT Master</title>
-
-<style>
-body{
-font-family:Arial;
-background:#0f172a;
-color:white;
-text-align:center;
-padding:40px;
-}
-
-.container{
-max-width:700px;
-margin:auto;
-background:#1e293b;
-padding:30px;
-border-radius:15px;
-box-shadow:0 0 25px rgba(0,0,0,0.5);
-}
-
-h1{
-color:#38bdf8;
-}
-
-input{
-margin:20px 0;
-}
-
-button{
-background:#38bdf8;
-border:none;
-padding:12px 25px;
-border-radius:8px;
-font-size:16px;
-cursor:pointer;
-}
-
-.progress{
-width:100%;
-background:#334155;
-height:20px;
-border-radius:10px;
-margin-top:20px;
-overflow:hidden;
-}
-
-.progress-bar{
-height:100%;
-width:0%;
-background:#22c55e;
-transition:0.3s;
-}
-
-.time{
-margin-top:15px;
-color:#facc15;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Whisper Transcriber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .progress-bar-fill { transition: width 0.4s ease-in-out; }
+        body { background: #0f172a; color: white; }
+    </style>
 </head>
+<body class="p-8">
 
-<body>
+    <div class="max-w-2xl mx-auto bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700">
+        <h1 class="text-2xl font-bold mb-6 text-cyan-400 flex items-center gap-2">
+            🎙️ Audio to SRT Transcriber
+        </h1>
 
-<div class="container">
+        <div class="mb-6">
+            <label class="block mb-2 text-sm font-medium text-slate-300">Upload MP3 File</label>
+            <input type="file" id="audioFile" accept="audio/mp3" 
+                class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700 cursor:pointer">
+        </div>
 
-<h1>🎙 Whisper SRT Master</h1>
+        <button onclick="startTranscription()" id="processBtn"
+            class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+            Start Transcription
+        </button>
 
-<p>MP3 ➜ Original SRT Subtitle</p>
+        <div id="statusArea" class="hidden mt-8">
+            <div class="flex justify-between mb-2">
+                <span id="statusText" class="text-sm font-medium text-cyan-300">Processing...</span>
+                <span id="timer" class="text-sm font-mono text-slate-400">Time: 0s</span>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-4 mb-4">
+                <div id="progressBar" class="progress-bar-fill bg-cyan-500 h-4 rounded-full" style="width: 0%"></div>
+            </div>
+            <div id="keyIndicator" class="text-[10px] text-slate-500 uppercase tracking-widest text-center"></div>
+        </div>
 
-<input type="file" id="audioFile" accept="audio/*">
+        <div id="resultArea" class="hidden mt-6">
+            <h3 class="text-lg font-semibold mb-2">Output SRT:</h3>
+            <textarea id="srtOutput" rows="8" class="w-full p-4 bg-slate-900 border border-slate-700 rounded-lg text-sm font-mono text-green-400 focus:outline-none" readonly></textarea>
+            <button onclick="downloadSRT()" class="mt-4 text-cyan-400 hover:underline text-sm font-medium">
+                📥 Auto Download Started... (Click here if not)
+            </button>
+        </div>
+    </div>
 
-<br>
+    <script>
+        // API Keys Configuration
+        const apiKeys = [
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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"
+        ];
 
-<button onclick="startProcess()">Generate SRT</button>
+        let currentKeyIndex = 0;
+        let timerInterval;
 
-<div class="progress">
-<div class="progress-bar" id="bar"></div>
-</div>
+        function rotateKey() {
+            currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length;
+            document.getElementById('keyIndicator').innerText = `Using Key Slot: ${currentKeyIndex + 1}`;
+            return apiKeys[currentKeyIndex];
+        }
 
-<div class="time" id="status">Waiting...</div>
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            const ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
+            return `${h}:${m}:${s},${ms}`;
+        }
 
-</div>
+        async function startTranscription() {
+            const fileInput = document.getElementById('audioFile');
+            if (!fileInput.files[0]) return alert("Please select an MP3 file!");
 
-<script>
+            // UI Reset
+            const btn = document.getElementById('processBtn');
+            const statusArea = document.getElementById('statusArea');
+            const progressBar = document.getElementById('progressBar');
+            const srtOutput = document.getElementById('srtOutput');
+            const timerDisplay = document.getElementById('timer');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            statusArea.classList.remove('hidden');
+            progressBar.style.width = '10%';
+            
+            let seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                timerDisplay.innerText = `Time: ${seconds}s`;
+            }, 1000);
 
-const keys = [
-"KEY1",
-"KEY2",
-"KEY3"
-];
+            try {
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+                formData.append("model", "whisper-large-v3");
+                formData.append("response_format", "verbose_json");
 
-let keyIndex = 0;
+                const activeKey = rotateKey();
 
-function getKey(){
-const key = keys[keyIndex];
-keyIndex = (keyIndex+1)%keys.length;
-return key;
-}
+                progressBar.style.width = '40%';
+                document.getElementById('statusText').innerText = "Uploading & Transcribing...";
 
-async function startProcess(){
+                const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${activeKey}` },
+                    body: formData
+                });
 
-const file = document.getElementById("audioFile").files[0];
-if(!file){
-alert("Upload MP3 first");
-return;
-}
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error.message);
 
-const startTime = Date.now();
+                progressBar.style.width = '100%';
+                document.getElementById('statusText').innerText = "Complete!";
+                clearInterval(timerInterval);
 
-document.getElementById("status").innerText="Uploading...";
+                // Convert to SRT
+                let srtContent = "";
+                data.segments.forEach((seg, idx) => {
+                    srtContent += `${idx + 1}\n${formatTime(seg.start)} --> ${formatTime(seg.end)}\n${seg.text.trim()}\n\n`;
+                });
 
-const formData = new FormData();
-formData.append("file",file);
-formData.append("model","whisper-large-v3");
-formData.append("response_format","srt");
+                srtOutput.value = srtContent;
+                document.getElementById('resultArea').classList.remove('hidden');
+                
+                // Auto Download
+                downloadSRT(srtContent);
 
-const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
-method:"POST",
-headers:{
-Authorization:"Bearer "+getKey()
-},
-body:formData
-});
+            } catch (error) {
+                alert("Error: " + error.message);
+                clearInterval(timerInterval);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
 
-const text = await res.text();
-
-document.getElementById("bar").style.width="100%";
-
-const seconds = ((Date.now()-startTime)/1000).toFixed(1);
-
-document.getElementById("status").innerText =
-"✅ Done in "+seconds+" sec";
-
-download(text);
-
-}
-
-function download(data){
-
-const blob = new Blob([data],{type:"text/plain"});
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href=url;
-a.download="subtitle.srt";
-a.click();
-
-}
-
-</script>
-
+        function downloadSRT(content) {
+            const blob = new Blob([content || document.getElementById('srtOutput').value], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "transcription.srt";
+            a.click();
+        }
+    </script>
 </body>
 </html>
