@@ -3,105 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI SRT Translator (16-Key Rotation)</title>
+    <title>AI Subtitle Master (Auto-Key)</title>
     <style>
-        :root { --accent: #a855f7; --bg: #0f172a; --card: #1e293b; }
+        :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
         body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 20px; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #334155; width: 100%; max-width: 600px; text-align: center; }
-        h1 { color: #e2e8f0; margin-bottom: 10px; font-size: 26px; }
-        .upload-box { border: 2px dashed #475569; padding: 40px; border-radius: 20px; cursor: pointer; transition: 0.3s; margin-bottom: 20px; background: rgba(30, 41, 59, 0.5); }
-        .upload-box:hover { border-color: var(--accent); background: rgba(168, 85, 247, 0.05); }
-        button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-        button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-        #status { margin: 20px 0; font-size: 14px; color: #fbbf24; font-weight: 500; }
-        textarea { width: 100%; height: 250px; background: #020617; color: #10b981; border: 1px solid #334155; padding: 15px; border-radius: 12px; font-family: monospace; font-size: 13px; resize: none; margin-top: 20px; display: none; box-sizing: border-box; }
+        .card { background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 600px; text-align: center; }
+        h2 { color: var(--accent); margin-bottom: 5px; }
+        .upload-area { border: 2px dashed #30363d; padding: 30px; border-radius: 15px; cursor: pointer; margin: 20px 0; transition: 0.3s; }
+        .upload-area:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #status { margin: 15px 0; font-size: 14px; color: #fbbf24; font-weight: bold; }
+        .result-container { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .box { flex: 1; min-width: 250px; text-align: left; }
+        label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 5px; }
+        textarea { width: 100%; height: 300px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 12px; border-radius: 10px; font-family: monospace; font-size: 12px; resize: none; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>SRT Translator Pro</h1>
-    <p style="color:#94a3b8; font-size:12px;">(16-Key Auto Rotation System)</p>
+    <h2>🎙️ AI Subtitle Master</h2>
+    <p style="font-size: 12px; color: #8b949e;">Whisper (English) + Gemini (Myanmar) Auto-Translation</p>
 
-    <div class="upload-box" onclick="document.getElementById('srtFile').click()">
-        <span id="fileLabel">SRT ဖိုင် ရွေးချယ်ပါ</span>
-        <input type="file" id="srtFile" accept=".srt" style="display:none" onchange="updateFileName()">
+    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
+        <span id="fileLabel">အသံဖိုင် ရွေးချယ်ရန် နှိပ်ပါ</span>
+        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="showFileName()">
     </div>
 
-    <button id="runBtn" onclick="startTranslation()">ဘာသာပြန်ဆိုမည်</button>
-    <div id="status">Brave Shield ပိတ်ထားရန် လိုအပ်ပါသည်</div>
+    <button id="runBtn" onclick="processAI()">စတင်လုပ်ဆောင်မည်</button>
+    
+    <div id="status">အဆင်သင့်ဖြစ်ပါပြီ</div>
 
-    <textarea id="output" readonly></textarea>
+    <div class="result-container">
+        <div class="box">
+            <label>English SRT (Original)</label>
+            <textarea id="engText" readonly></textarea>
+        </div>
+        <div class="box">
+            <label>Myanmar SRT (Translated)</label>
+            <textarea id="mmText" readonly></textarea>
+        </div>
+    </div>
 </div>
 
 <script>
-    // သင်ပေးထားတဲ့ Key ၁၆ ခုလုံးကို စနစ်တကျ ထည့်ထားပါတယ်
-    const geminiKeys = [
-        "AIzaSyCeUJr4_uNXkaZZnWLbvcy3PYX53LyqnOM", "AIzaSyARz6dEki8suKmwlrQdIZaTnxgEeVPKlXk",
-        "AIzaSyB7uDfGi7OUokmP7IpNBGRH8RGWSDHzU-U", "AIzaSyB6rAcwg-zkzV9qDqXs46mZ7y6Ycr5m-nk",
-        "AIzaSyCmteLM5BS8HM5PRiswMSb8IgHyFcJz_Xw", "AIzaSyDa8QMr928UyDYGw0ctnkeWNHx0dIW7vo0",
-        "AIzaSyBn_wlF3gzB0aXJOfmlmbaRBjEHhVpGFpU", "AIzaSyBJ2AusS7kuvNT123GbGyeksHD7yULx8AA",
-        "AIzaSyDVv31SdxQNG0x5SmX10gkdR5IqC6bTnZ4", "AIzaSyATSwdlP9mJ3mToGq-cXW1AuY5sw-C6oeg",
-        "AIzaSyCmteLM5BS8HM5PRiswMSb8IgHyFcJz_Xw", "AIzaSyDa8QMr928UyDYGw0ctnkeWNHx0dIW7vo0",
-        "AIzaSyBn_wlF3gzB0aXJOfmlmbaRBjEHhVpGFpU", "AIzaSyBJ2AusS7kuvNT123GbGyeksHD7yULx8AA",
-        "AIzaSyDVv31SdxQNG0x5SmX10gkdR5IqC6bTnZ4", "AIzaSyATSwdlP9mJ3mToGq-cXW1AuY5sw-C6oeg"
-    ];
+    // Whisper Keys (7 Keys) - Encoded
+    const wKeys = ["R3NrXzJ4ZWlBU1I3S041NG9HZE9tVFZDV0dyeWIzRllQM1RXbm1INEx5RjBMNjhENlZYcnVJZWUK", "R3NrX1JyVHhKWWptSmJpSlBsdjhLZDd5V0dyeWIzRlk5ZEVRc3I5ZFI5VE1BWldQaUZhMHFiM2QK", "R3NrX0FCb2IxM2t1RjhNTUgwN2xaNVJOV0dyeWIzRlk0QmJ2S2I1MHAxQmRnaVN4bHJ1THhKUnIK", "R3NrX2pPSVdkcFpjSmpJbGNrSUs0ZWZzV0dyeWIzRll5NGlvYXZqTU1HOGdQdkNEVjhMU1VZWHYK", "R3NrXzhrc1p4MHlidUZ4ejVTMmdSWWhWV0dyeWIzRllhM1BzZnNhNnNVb1B3NnBaU2htclFEWlIK", "R3NrXzJrSlk4N3E2SUFlemVqOG1mSzRWV0dyeWIzRllqZGtZa2oxTHpWemJmYlpVMFBqNmIwZmEK", "R3NrX2wzOWNtaWNmU3c3Mjg0RFh4MEJrV0dyeWIzRllScEFJZXhtZ05FUkRaWjkzdFlwOHRJNTUK"].map(k => atob(k).trim());
 
-    function updateFileName() {
-        const file = document.getElementById('srtFile').files[0];
-        if (file) document.getElementById('fileLabel').innerHTML = `<b>${file.name}</b>`;
+    // Gemini Keys (10 Keys) - Encoded
+    const gKeys = ["QUl6YVN5Q2VVSnI0X3VOWGthWlpud0xidmN5M1BYWDUzTHlxbl9vTQo=", "QUl6YVN5QVJ6NmVEa2k4c3VLbXdsclFkSVphVG54Z0VlVlBLbFhrCg==", "QUl6YVN5Qjd1RGZHaTdPVW9rbVA3SXBOQkdSSDhSR1dTREh6VS1VCg==", "QUl6YVN5QjZyQWN3Zy16a3pWOW9EcUR4czQ2bVo3eTZZY3I1bS1uago=", "QUl6YVN5Q210ZUxNNUJTOEhNNVBSaXN3TVNiOElnSHlGY0p6X1h3Cg==", "QUl6YVN5RGE4UU1yOTI4VXVEWUd3MGN0bmtlV05IeDBkSVc3dm8wCg==", "QUl6YVN5Qm5fd2xGM2d6QjBhWEpPZm1sbWJhUkJqRUhodlBHRnBVCg==", "QUl6YVN5QkoyQXVzUzdrdXZOVDEyM0diR3lla3NIRDd5VUx4OEFBCg==", "QUl6YVN5RFZ2MzFTZHhRTkcweDVTbVgxMGdrZFI1SXFDNmJUblo0Cg==", "QUl6YVN5QVRTd2RsUDltSjNtVG9HcS1jWFcxQXVZNXN3LUM2b2VnCg=="].map(k => atob(k).trim());
+
+    function showFileName() {
+        const file = document.getElementById('audioFile').files[0];
+        if (file) document.getElementById('fileLabel').innerText = file.name;
     }
 
-    async function startTranslation() {
-        const file = document.getElementById('srtFile').files[0];
+    async function processAI() {
+        const file = document.getElementById('audioFile').files[0];
         if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
         const btn = document.getElementById('runBtn');
         const status = document.getElementById('status');
-        const output = document.getElementById('output');
-        
-        btn.disabled = true;
-        const text = await file.text();
-        let finalResult = "";
+        const engArea = document.getElementById('engText');
+        const mmArea = document.getElementById('mmText');
 
-        for (let i = 0; i < geminiKeys.length; i++) {
-            status.innerText = `Key (${i + 1}/${geminiKeys.length}) ဖြင့် ပြန်ဆိုနေသည်...`;
+        btn.disabled = true;
+        engArea.style.display = mmArea.style.display = "none";
+
+        // Step 1: Whisper Transcribe
+        let engSrt = "";
+        status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
+        for (let key of wKeys) {
             try {
-                finalResult = await callGemini(text, geminiKeys[i].trim());
-                if (finalResult) break;
-            } catch (e) {
-                console.log(`Key ${i+1} fail`);
-            }
+                engSrt = await getWhisper(file, key);
+                if (engSrt) break;
+            } catch (e) { console.log("Whisper Key Failed"); }
         }
 
-        if (finalResult) {
-            output.value = finalResult;
-            output.style.display = "block";
-            status.innerText = "အောင်မြင်စွာ ပြီးစီးပါပြီ!";
-            
-            const blob = new Blob([finalResult], { type: 'text/srt' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = "MM_" + file.name;
-            a.click();
+        if (!engSrt) {
+            status.innerText = "Error: Whisper Key များ အလုပ်မလုပ်ပါ။";
+            btn.disabled = false; return;
+        }
+
+        engArea.value = engSrt;
+        engArea.style.display = "block";
+
+        // Step 2: Gemini Translate
+        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာဘာသာပြန်နေသည်...";
+        let mmSrt = "";
+        for (let key of gKeys) {
+            try {
+                mmSrt = await getGemini(engSrt, key);
+                if (mmSrt) break;
+            } catch (e) { console.log("Gemini Key Failed"); }
+        }
+
+        if (!mmSrt) {
+            status.innerText = "Error: Gemini Key များ အလုပ်မလုပ်ပါ။";
         } else {
-            status.innerText = "Error: Key အားလုံး Limit ပြည့်နေပါသည်။";
+            mmArea.value = mmSrt;
+            mmArea.style.display = "block";
+            status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
         }
         btn.disabled = false;
     }
 
-    async function callGemini(srt, key) {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+    async function getWhisper(file, key) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("model", "whisper-large-v3");
+        fd.append("response_format", "verbose_json");
+        fd.append("temperature", "0");
+
+        const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${key}` },
+            body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error();
+
+        let srt = "";
+        data.segments.forEach((s, i) => {
+            srt += `${i+1}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.text.trim()}\n\n`;
+        });
+        return srt;
+    }
+
+    async function getGemini(text, key) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+        const prompt = `Translate this SRT to Myanmar. Keep timestamps and SRT format exactly same. Just give the result:\n\n${text}`;
+        
+        const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: "Translate this SRT to Myanmar (Burmese). Keep timestamps unchanged:\n\n" + srt }] }]
-            })
+            body: JSON.stringify({ "contents": [{ "parts": [{ "text": prompt }] }] })
         });
-        if (!res.ok) throw new Error();
         const data = await res.json();
+        if (!res.ok) throw new Error();
         return data.candidates[0].content.parts[0].text;
     }
+
+    function formatTime(seconds) {
+        const date = new Date(seconds * 1000);
+        const hh = String(date.getUTCHours()).padStart(2, '0');
+        const mm = String(date.getUTCMinutes()).padStart(2, '0');
+        const ss = String(date.getUTCSeconds()).padStart(2, '0');
+        const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
+        return `${hh}:${mm}:${ss},${ms}`;
+    }
 </script>
+
 </body>
 </html>
