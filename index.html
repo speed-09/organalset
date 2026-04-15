@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master - Auto Rotation</title>
+    <title>Whisper SRT Master - Full Sentence</title>
     <style>
         :root { --primary: #00ffcc; --bg: #0d1117; --card: #161b22; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #c9d1d9; display: flex; flex-direction: column; align-items: center; padding: 20px; }
@@ -18,44 +18,30 @@
         .fill { width: 0%; height: 100%; background: var(--primary); transition: 0.4s; }
         #status { text-align: center; font-size: 14px; margin: 10px 0; color: #fbbf24; }
         textarea { width: 100%; height: 280px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 8px; font-family: monospace; display: none; line-height: 1.6; }
-        .key-info { font-size: 11px; color: #484f58; text-align: right; margin-top: -10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>🎙️ Whisper SRT Master</h2>
-    
-    <label>အသံဖိုင် ရွေးချယ်ပါ (MP3, WAV, etc.)</label>
+    <input type="hidden" id="apiKey" value="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">
+
+    <label>အသံဖိုင် ရွေးချယ်ပါ</label>
     <input type="file" id="audioFile" accept="audio/*">
 
     <button id="runBtn" onclick="generateSRT()">SRT စတင်ထုတ်ယူမည်</button>
     
     <div class="progress-bar" id="pBar"><div class="fill" id="pFill"></div></div>
     <div id="status">အသင့်ဖြစ်ပါပြီ</div>
-    <div class="key-info" id="keyTag">Auto-rotation Active</div>
     
     <textarea id="output" readonly spellcheck="false"></textarea>
     <button id="dlBtn" onclick="downloadSrt()">📥 SRT ဖိုင်ကို သိမ်းဆည်းမည်</button>
 </div>
 
 <script>
-    // သင်ပေးထားတဲ့ API Keys များကို အလှည့်ကျသုံးရန် Array ထဲထည့်ထားခြင်း
-    const apiKeys = [
-        "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",
-        "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",
-        "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",
-        "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",
-        "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",
-        "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",
-        "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",
-        "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"
-    ];
-
-    let currentKeyIndex = 0;
-
     async function generateSRT() {
         const file = document.getElementById('audioFile').files[0];
+        const key = document.getElementById('apiKey').value;
         if (!file) return alert("ဖိုင်အရင်ရွေးပါ");
 
         const btn = document.getElementById('runBtn');
@@ -69,8 +55,8 @@
         pBar.style.display = 'block';
         output.style.display = 'none';
         dlBtn.style.display = 'none';
-        status.innerText = "စတင်နေပါပြီ... (Key #" + (currentKeyIndex + 1) + " ကိုသုံးနေသည်)";
-        pFill.style.width = "30%";
+        status.innerText = "စကားပြောသံများကို စုစည်းနေပါသည်...";
+        pFill.style.width = "40%";
 
         const formData = new FormData();
         formData.append("file", file);
@@ -80,21 +66,73 @@
         try {
             const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${apiKeys[currentKeyIndex]}` },
+                headers: { "Authorization": `Bearer ${key}` },
                 body: formData
             });
 
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || "API Error");
 
-            // Rate Limit သို့မဟုတ် Error ဖြစ်လျှင် နောက် Key တစ်ခုသို့ ပြောင်းရန်
-            if (!response.ok) {
-                if (currentKeyIndex < apiKeys.length - 1) {
-                    currentKeyIndex++;
-                    status.innerText = "Limit ပြည့်သွားသဖြင့် Key အသစ်ဖြင့် ထပ်မံကြိုးစားနေသည်...";
-                    return generateSRT(); 
-                } else {
-                    throw new Error(data.error?.message || "Keys အားလုံး Limit ပြည့်သွားပါပြီ။");
-                }
+            // --- IMPROVED LOGIC: စကားစုများကို ပြန်ပေါင်းခြင်း ---
+            const srtResult = processSegments(data.segments);
+            
+            output.value = srtResult;
+            output.style.display = "block";
+            dlBtn.style.display = "block";
+            status.innerText = "အောင်မြင်စွာ ပြီးစီးပါပြီ!";
+            pFill.style.width = "100%";
+        } catch (e) {
+            status.innerText = "Error: " + e.message;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // စကားလုံး အပိုင်းအစလေးတွေကို စုစည်းပေးမည့် function
+    function processSegments(segments) {
+        let finalSRT = "";
+        let srtIndex = 1;
+
+        for (let i = 0; i < segments.length; i++) {
+            let s = segments[i];
+            let start = formatTime(s.start);
+            let end = formatTime(s.end);
+            let text = s.text.trim();
+
+            // ကော်မာပါရင် line ဆင်းမယ်၊ ဒါပေမဲ့ block တစ်ခုတည်းမှာပဲ ထားမယ်
+            if (text.includes(',')) {
+                text = text.replace(/,\s*/g, ',\n');
+                // ၂ ကြောင်းထက် ပိုသွားရင် ဖြတ်ချမယ်
+                let lines = text.split('\n');
+                if (lines.length > 2) text = lines.slice(0, 2).join('\n');
             }
 
-        ...
+            finalSRT += `${srtIndex}\n${start} --> ${end}\n${text}\n\n`;
+            srtIndex++;
+        }
+        return finalSRT;
+    }
+
+    function formatTime(seconds) {
+        const date = new Date(seconds * 1000);
+        const hh = String(date.getUTCHours()).padStart(2, '0');
+        const mm = String(date.getUTCMinutes()).padStart(2, '0');
+        const ss = String(date.getUTCSeconds()).padStart(2, '0');
+        const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
+        return `${hh}:${mm}:${ss},${ms}`;
+    }
+
+    function downloadSrt() {
+        const content = document.getElementById('output').value;
+        const blob = new Blob([content], { type: 'text/srt' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = "full_sentence_subtitle.srt";
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
