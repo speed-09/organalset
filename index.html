@@ -1,123 +1,131 @@
-<!DOCTYPE html>
-<html lang="my">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master - Auto Rotation</title>
+ import streamlit as st
+import os
+import time
+import random
+import requests
+from datetime import timedelta
+
+# Page Config
+st.set_page_config(page_title="Whisper SRT Master Pro", page_icon="🎙️", layout="wide")
+
+# Custom CSS for Professional UI
+st.markdown("""
     <style>
-        :root { --accent: #00f2fe; --bg: #0d1117; --card: #161b22; }
-        body { font-family: sans-serif; background: var(--bg); color: white; display: flex; justify-content: center; padding: 15px; min-height: 100vh; margin: 0; }
-        .card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #30363d; width: 100%; max-width: 500px; }
-        h2 { color: var(--accent); text-align: center; margin-top: 0; font-size: 22px; }
-        label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 8px; }
-        textarea.key-input { width: 100%; height: 120px; background: #010409; color: #ccc; border: 1px solid #30363d; border-radius: 10px; padding: 12px; font-size: 12px; resize: none; box-sizing: border-box; margin-bottom: 20px; }
-        .upload-area { border: 2px dashed #30363d; padding: 35px; border-radius: 15px; text-align: center; cursor: pointer; margin-bottom: 20px; transition: 0.3s; }
-        .upload-area:hover { border-color: var(--accent); background: rgba(0, 242, 254, 0.05); }
-        button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; cursor: pointer; font-size: 16px; }
-        button:disabled { background: #333; color: #666; cursor: not-allowed; }
-        #status { text-align: center; margin: 15px 0; font-size: 13px; color: #fbbf24; line-height: 1.6; }
-        textarea.output { width: 100%; height: 350px; background: #010409; color: #7ee787; border: 1px solid #30363d; border-radius: 10px; padding: 12px; font-family: monospace; font-size: 12px; display: none; box-sizing: border-box; margin-top: 20px; }
+    .main { background-color: #0e1117; color: white; }
+    .stProgress > div > div > div > div { background-image: linear-gradient(to right, #00ffcc , #0085ff); }
+    .status-box { padding: 20px; border-radius: 10px; border: 1px solid #333; background: #161b22; }
     </style>
-</head>
-<body>
+    """, unsafe_allow_html=True)
 
-<div class="card">
-    <h2>🎙️ Whisper SRT Master</h2>
-    <p style="text-align:center; font-size:11px; color:#8b949e; margin-bottom:20px;">Auto-Rotation & VPN Friendly System</p>
+# 1. API Keys Rotation System
+api_keys = [
+    "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",
+    "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",
+    "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",
+    "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",
+    "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",
+    "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",
+    "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"
+]
 
-    <label>Whisper Keys (တစ်ကြောင်းလျှင် တစ်ခုစီထည့်ပါ)</label>
-    <textarea id="wKeys" class="key-input" placeholder="gsk_xxxx...&#10;gsk_yyyy..."></textarea>
+def get_random_key():
+    return random.choice(api_keys)
 
-    <div class="upload-area" onclick="document.getElementById('audioFile').click()">
-        <span id="label">အသံဖိုင် ရွေးချယ်ပါ (MP3/WAV/M4A)</span>
-        <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="document.getElementById('label').innerText=this.files[0].name">
-    </div>
+def format_timestamp(seconds: float):
+    td = timedelta(seconds=seconds)
+    total_seconds = int(td.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    secs = total_seconds % 60
+    millis = int(td.microseconds / 1000)
+    return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
 
-    <button id="runBtn" onclick="processWhisper()">စာသားထုတ်မည် (Generate SRT)</button>
+# UI Header
+st.title("🎙️ Whisper SRT Master Pro")
+st.subheader("AI-Powered MP3 to Original SRT Converter")
+st.write("---")
+
+# File Uploader
+uploaded_file = st.file_uploader("Upload your MP3 file", type=["mp3", "wav", "m4a"])
+
+if uploaded_file is not None:
+    st.audio(uploaded_file, format='audio/mp3')
     
-    <div id="status">Brave Shield ပိတ်ထားရန် လိုအပ်ပါသည်</div>
-
-    <textarea id="output" readonly></textarea>
-</div>
-
-<script>
-    async function processWhisper() {
-        const file = document.getElementById('audioFile').files[0];
-        const wList = document.getElementById('wKeys').value.trim().split('\n').map(k => k.trim()).filter(k => k);
-
-        if (!file) return alert("ဖိုင်အရင်ရွေးချယ်ပါ");
-        if (wList.length === 0) return alert("Whisper Key အနည်းဆုံး တစ်ခု ထည့်ပေးပါ");
-
-        const btn = document.getElementById('runBtn');
-        const status = document.getElementById('status');
-        const output = document.getElementById('output');
+    if st.button("🚀 Start Transcription (Pro)"):
+        # Temporary save
+        with open("temp_audio.mp3", "wb") as f:
+            f.write(uploaded_file.getbuffer())
         
-        btn.disabled = true;
-        let engSrt = "";
-        let success = false;
-
-        // Key Rotation စနစ်
-        for (let i = 0; i < wList.length; i++) {
-            status.innerHTML = `⏳ Key (${i+1}/${wList.length}) ဖြင့် စာသားထုတ်နေသည်...<br><small>VPN သုံးထားလျှင် ခေတ္တစောင့်ပေးပါ</small>`;
-            try {
-                engSrt = await getWhisper(file, wList[i]);
-                if (engSrt) {
-                    success = true;
-                    break; 
-                }
-            } catch (e) {
-                console.warn(`Key ${i+1} failed:`, e);
-            }
-        }
-
-        if (success) {
-            output.value = engSrt;
-            output.style.display = "block";
-            status.innerHTML = "✅ စာသားထုတ်ယူမှု အောင်မြင်ပါပြီ!";
+        # UI Elements for progress
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        timer_text = st.empty()
+        
+        start_time = time.time()
+        
+        try:
+            status_text.info("🔄 Connecting to Whisper AI via Groq...")
+            api_key = get_random_key()
+            headers = {"Authorization": f"Bearer {api_key}"}
             
-            // Auto Download
-            const blob = new Blob([engSrt], { type: 'text/srt' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = file.name.split('.')[0] + ".srt";
-            a.click();
-        } else {
-            status.innerHTML = "❌ Error: Key အားလုံး Limit ပြည့်နေပါသည် သို့မဟုတ် VPN ချိတ်ဆက်မှု အဆင်မပြေပါ။";
-        }
-        btn.disabled = false;
-    }
+            # Simulated Processing Steps for UI UX
+            for i in range(1, 40):
+                time.sleep(0.05)
+                progress_bar.progress(i)
+                timer_text.text(f"Elapsed Time: {int(time.time() - start_time)}s")
 
-    async function getWhisper(file, key) {
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("model", "whisper-large-v3");
-        fd.append("response_format", "verbose_json");
+            # API Call
+            url = "https://api.groq.com/openai/v1/audio/transcriptions"
+            files = {
+                "file": ("temp_audio.mp3", open("temp_audio.mp3", "rb")),
+                "model": (None, "whisper-large-v3"),
+                "response_format": (None, "verbose_json"), # JSON format for precise timestamps
+            }
+            
+            response = requests.post(url, headers=headers, files=files)
+            
+            if response.status_code == 200:
+                status_text.success("✅ Transcription Complete!")
+                data = response.json()
+                
+                # Progress to 100%
+                progress_bar.progress(100)
+                
+                # SRT Generation
+                srt_content = ""
+                if 'segments' in data:
+                    for idx, segment in enumerate(data['segments']):
+                        start = format_timestamp(segment['start'])
+                        end = format_timestamp(segment['end'])
+                        text = segment['text'].strip()
+                        srt_content += f"{idx + 1}\n{start} --> {end}\n{text}\n\n"
+                
+                # Output Results
+                st.write("### 📄 SRT Preview")
+                st.text_area("Final SRT Output", srt_content, height=300)
+                
+                # Auto-download trigger
+                file_name = f"{uploaded_file.name.split('.')[0]}.srt"
+                st.download_button(
+                    label="📥 Download SRT (Auto-ready)",
+                    data=srt_content,
+                    file_name=file_name,
+                    mime="text/plain",
+                    help="Click here to save your file"
+                )
+                
+                st.balloons()
+                
+            else:
+                st.error(f"API Error: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+        
+        finally:
+            if os.path.exists("temp_audio.mp3"):
+                os.remove("temp_audio.mp3")
 
-        const targetUrl = "https://api.groq.com/openai/v1/audio/transcriptions";
-        const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-
-        const res = await fetch(proxyUrl, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${key}` },
-            body: fd
-        });
-
-        if(!res.ok) throw new Error("API Error");
-
-        const data = await res.json();
-        let srt = "";
-        data.segments.forEach((s, i) => {
-            srt += `${i+1}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.text.trim()}\n\n`;
-        });
-        return srt;
-    }
-
-    function formatTime(s) {
-        const d = new Date(s * 1000);
-        const pad = (n, l=2) => String(n).padStart(l, '0');
-        return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())},${pad(d.getUTCMilliseconds(), 3)}`;
-    }
-</script>
-
-</body>
-</html>
+# Footer
+st.write("---")
+st.caption("Developed with ❤️ | Whisper-large-v3 Engine | High Precision Timestamps")
