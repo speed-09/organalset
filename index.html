@@ -14,8 +14,8 @@
         textarea.key-input { width: 100%; height: 90px; background: #010409; color: #ccc; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-size: 11px; resize: none; box-sizing: border-box; }
         .upload-area { border: 2px dashed #30363d; padding: 25px; border-radius: 12px; text-align: center; cursor: pointer; margin-bottom: 15px; }
         button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: black; font-weight: bold; cursor: pointer; font-size: 15px; }
-        button:disabled { background: #333; color: #666; }
-        #status { text-align: center; margin: 15px 0; font-size: 13px; color: #fbbf24; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #status { text-align: center; margin: 15px 0; font-size: 13px; color: #fbbf24; line-height: 1.5; }
         .results { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         textarea.output { width: 100%; height: 280px; background: #010409; color: #7ee787; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; display: none; box-sizing: border-box; }
     </style>
@@ -27,23 +27,23 @@
 
     <div class="key-container">
         <div>
-            <label>Whisper Keys (တစ်ခုစီခြားထည့်ပါ)</label>
+            <label>Whisper Keys (တစ်ကြောင်းစီထည့်ပါ)</label>
             <textarea id="wKeys" class="key-input" placeholder="gsk_xxxx...&#10;gsk_yyyy..."></textarea>
         </div>
         <div>
-            <label>Gemini Keys (တစ်ခုစီခြားထည့်ပါ)</label>
+            <label>Gemini Keys (တစ်ကြောင်းစီထည့်ပါ)</label>
             <textarea id="gKeys" class="key-input" placeholder="AIzaxxxx...&#10;AIzayyyy..."></textarea>
         </div>
     </div>
 
     <div class="upload-area" onclick="document.getElementById('audioFile').click()">
-        <span id="label">အသံဖိုင် ရွေးချယ်ပါ</span>
+        <span id="label">အသံဖိုင် ရွေးချယ်ပါ (MP3/WAV/M4A)</span>
         <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="document.getElementById('label').innerText=this.files[0].name">
     </div>
 
     <button id="runBtn" onclick="processAll()">စတင်လုပ်ဆောင်မည်</button>
     
-    <div id="status">Key များကို ထည့်သွင်းပြီး ဖိုင်ရွေးချယ်ပါ</div>
+    <div id="status">⚠️ Brave Shield နှင့် VPN ကို ပိတ်ထားပေးပါ</div>
 
     <div class="results">
         <textarea id="engOut" class="output" readonly></textarea>
@@ -54,8 +54,8 @@
 <script>
     async function processAll() {
         const file = document.getElementById('audioFile').files[0];
-        const wList = document.getElementById('wKeys').value.trim().split('\n').filter(k => k.trim());
-        const gList = document.getElementById('gKeys').value.trim().split('\n').filter(k => k.trim());
+        const wList = document.getElementById('wKeys').value.trim().split('\n').map(k => k.trim()).filter(k => k);
+        const gList = document.getElementById('gKeys').value.trim().split('\n').map(k => k.trim()).filter(k => k);
 
         if (!file || wList.length === 0 || gList.length === 0) {
             return alert("Key များနှင့် ဖိုင်ကို အရင်စုံအောင် ထည့်ပေးပါဗျ။");
@@ -66,18 +66,19 @@
         btn.disabled = true;
 
         // Step 1: Whisper Rotation
-        status.innerText = "အဆင့် (၁) - Whisper ဖြင့် စာသားထုတ်နေသည်...";
         let engSrt = "";
         for (let i = 0; i < wList.length; i++) {
-            status.innerText = `Whisper: Key (${i+1}/${wList.length}) ကို သုံးနေသည်...`;
+            status.innerHTML = `⏳ Whisper: Key (${i+1}/${wList.length}) ဖြင့် စာသားထုတ်နေသည်...<br><small>ဖိုင်အရွယ်အစားပေါ်မူတည်၍ ခဏစောင့်ပေးပါ</small>`;
             try {
-                engSrt = await getWhisper(file, wList[i].trim());
+                engSrt = await getWhisper(file, wList[i]);
                 if (engSrt) break;
-            } catch (e) { console.log(`W-Key ${i+1} fail`); }
+            } catch (e) {
+                console.error(`Whisper Key ${i+1} failed:`, e);
+            }
         }
 
         if (!engSrt) {
-            status.innerText = "Whisper Error: Key အားလုံး မအောင်မြင်ပါ။ Brave Shield ပိတ်ထားလား စစ်ပေးပါ။";
+            status.innerHTML = "❌ Whisper Error: Key အားလုံး မအောင်မြင်ပါ။<br>၁။ Brave Shield ပိတ်ထားလား စစ်ပါ။<br>၂။ VPN ပိတ်ပါ။<br>၃။ ဖိုင်ကို ၂၅ MB ထက် ငယ်အောင် လုပ်ပါ။";
             btn.disabled = false; return;
         }
 
@@ -85,22 +86,23 @@
         document.getElementById('engOut').style.display = "block";
 
         // Step 2: Gemini Rotation
-        status.innerText = "အဆင့် (၂) - Gemini ဖြင့် မြန်မာပြန်နေသည်...";
         let mmSrt = "";
         for (let i = 0; i < gList.length; i++) {
-            status.innerText = `Gemini: Key (${i+1}/${gList.length}) ကို သုံးနေသည်...`;
+            status.innerHTML = `⏳ Gemini: Key (${i+1}/${gList.length}) ဖြင့် မြန်မာပြန်နေသည်...`;
             try {
-                mmSrt = await getGemini(engSrt, gList[i].trim());
+                mmSrt = await getGemini(engSrt, gList[i]);
                 if (mmSrt) break;
-            } catch (e) { console.log(`G-Key ${i+1} fail`); }
+            } catch (e) {
+                console.error(`Gemini Key ${i+1} failed:`, e);
+            }
         }
 
         if (mmSrt) {
             document.getElementById('mmOut').value = mmSrt;
             document.getElementById('mmOut').style.display = "block";
-            status.innerText = "အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
+            status.innerText = "✅ အားလုံး အောင်မြင်စွာ ပြီးစီးပါပြီ!";
         } else {
-            status.innerText = "Gemini Error: ဘာသာပြန်မှု မအောင်မြင်ပါ။";
+            status.innerText = "❌ Gemini Error: ဘာသာပြန်မှု မအောင်မြင်ပါ။";
         }
         btn.disabled = false;
     }
@@ -110,12 +112,19 @@
         fd.append("file", file);
         fd.append("model", "whisper-large-v3");
         fd.append("response_format", "verbose_json");
+
         const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
             headers: {"Authorization": `Bearer ${key}`},
             body: fd
         });
-        if(!res.ok) throw new Error();
+
+        if(!res.ok) {
+            const errorLog = await res.json();
+            console.log("Groq Error Details:", errorLog);
+            throw new Error(errorLog.error.message);
+        }
+
         const data = await res.json();
         let srt = "";
         data.segments.forEach((s, i) => {
@@ -128,9 +137,9 @@
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate to Myanmar SRT format. Keep timestamps unchanged:\n\n" + text }] }] })
+            body: JSON.stringify({ contents: [{ parts: [{ text: "Translate this SRT to Myanmar. Keep original SRT format:\n\n" + text }] }] })
         });
-        if(!res.ok) throw new Error();
+        if(!res.ok) throw new Error("Gemini Error");
         const data = await res.json();
         return data.candidates[0].content.parts[0].text;
     }
