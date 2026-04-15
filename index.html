@@ -1,130 +1,156 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .input-style { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; width: 100%; color: white; outline: none; transition: 0.3s; }
-        .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-        .btn-pro { background: linear-gradient(90deg, #2563eb, #059669); font-weight: bold; padding: 14px; border-radius: 12px; width: 100%; transition: 0.3s; }
-        .btn-pro:hover { opacity: 0.9; transform: translateY(-2px); }
-        .progress-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 10px; }
-        .progress-inner { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: 0.4s; }
-    </style>
+<meta charset="UTF-8">
+<title>Whisper SRT Master</title>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+text-align:center;
+padding:40px;
+}
+
+.container{
+max-width:700px;
+margin:auto;
+background:#1e293b;
+padding:30px;
+border-radius:15px;
+box-shadow:0 0 25px rgba(0,0,0,0.5);
+}
+
+h1{
+color:#38bdf8;
+}
+
+input{
+margin:20px 0;
+}
+
+button{
+background:#38bdf8;
+border:none;
+padding:12px 25px;
+border-radius:8px;
+font-size:16px;
+cursor:pointer;
+}
+
+.progress{
+width:100%;
+background:#334155;
+height:20px;
+border-radius:10px;
+margin-top:20px;
+overflow:hidden;
+}
+
+.progress-bar{
+height:100%;
+width:0%;
+background:#22c55e;
+transition:0.3s;
+}
+
+.time{
+margin-top:15px;
+color:#facc15;
+}
+</style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
-        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            Whisper SRT Master Pro
-        </h1>
+<body>
 
-        <div class="space-y-5">
-            <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Enter Groq API Key (gsk_...)</label>
-                <input type="password" id="apiKeyInput" placeholder="Paste your API Key here" class="input-style">
-            </div>
+<div class="container">
 
-            <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 Audio File</label>
-                <input type="file" id="audioFile" accept="audio/*" class="input-style text-sm">
-            </div>
+<h1>🎙 Whisper SRT Master</h1>
 
-            <button id="processBtn" class="btn-pro shadow-lg">🚀 Check & Start Production</button>
+<p>MP3 ➜ Original SRT Subtitle</p>
 
-            <div id="statusBox" class="hidden">
-                <div class="flex justify-between text-xs mb-1">
-                    <span id="statusMsg" class="text-blue-300">Checking Key...</span>
-                    <span id="timer">0s</span>
-                </div>
-                <div class="progress-bar">
-                    <div id="progressInner" class="progress-inner"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+<input type="file" id="audioFile" accept="audio/*">
 
-    <script>
-        function formatSRT(seconds) {
-            let date = new Date(0);
-            date.setSeconds(seconds);
-            let timeStr = date.toISOString().substr(11, 8);
-            let ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
-            return timeStr + "," + ms;
-        }
+<br>
 
-        document.getElementById('processBtn').onclick = async () => {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            const fileInput = document.getElementById('audioFile');
-            const btn = document.getElementById('processBtn');
-            const statusBox = document.getElementById('statusBox');
-            const bar = document.getElementById('progressInner');
-            const msg = document.getElementById('statusMsg');
-            const timerLabel = document.getElementById('timer');
+<button onclick="startProcess()">Generate SRT</button>
 
-            if (!key) return alert("API Key ထည့်ပေးပါဦး");
-            if (fileInput.files.length === 0) return alert("အသံဖိုင် ရွေးချယ်ပါ");
+<div class="progress">
+<div class="progress-bar" id="bar"></div>
+</div>
 
-            // Reset UI
-            btn.disabled = true;
-            statusBox.classList.remove('hidden');
-            bar.style.width = "0%";
-            
-            let timeElapsed = 0;
-            const timerInterval = setInterval(() => {
-                timeElapsed++;
-                timerLabel.innerText = timeElapsed + "s";
-                if(timeElapsed < 90) bar.style.width = timeElapsed + "%";
-            }, 1000);
+<div class="time" id="status">Waiting...</div>
 
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-            formData.append("model", "whisper-large-v3");
-            formData.append("response_format", "verbose_json");
+</div>
 
-            try {
-                msg.innerText = "Connecting to Groq AI...";
-                const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${key}` },
-                    body: formData
-                });
+<script>
 
-                const data = await res.json();
+const keys = [
+"KEY1",
+"KEY2",
+"KEY3"
+];
 
-                if (res.ok) {
-                    clearInterval(timerInterval);
-                    bar.style.width = "100%";
-                    msg.innerText = "✅ Done! Downloading SRT...";
+let keyIndex = 0;
 
-                    let srt = "";
-                    data.segments.forEach((seg, i) => {
-                        srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
-                    });
+function getKey(){
+const key = keys[keyIndex];
+keyIndex = (keyIndex+1)%keys.length;
+return key;
+}
 
-                    // Auto Download
-                    const blob = new Blob([srt], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileInput.files[0].name.split('.')[0] + ".srt";
-                    a.click();
-                } else {
-                    throw new Error(data.error.message || "API Key Error");
-                }
-            } catch (err) {
-                clearInterval(timerInterval);
-                alert("❌ Error: " + err.message + "\n\nKey မှန်မမှန် သေချာပြန်စစ်ပေးပါ။");
-                msg.innerText = "Failed.";
-                msg.classList.replace('text-blue-300', 'text-red-400');
-            } finally {
-                btn.disabled = false;
-            }
-        };
-    </script>
+async function startProcess(){
+
+const file = document.getElementById("audioFile").files[0];
+if(!file){
+alert("Upload MP3 first");
+return;
+}
+
+const startTime = Date.now();
+
+document.getElementById("status").innerText="Uploading...";
+
+const formData = new FormData();
+formData.append("file",file);
+formData.append("model","whisper-large-v3");
+formData.append("response_format","srt");
+
+const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
+method:"POST",
+headers:{
+Authorization:"Bearer "+getKey()
+},
+body:formData
+});
+
+const text = await res.text();
+
+document.getElementById("bar").style.width="100%";
+
+const seconds = ((Date.now()-startTime)/1000).toFixed(1);
+
+document.getElementById("status").innerText =
+"✅ Done in "+seconds+" sec";
+
+download(text);
+
+}
+
+function download(data){
+
+const blob = new Blob([data],{type:"text/plain"});
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href=url;
+a.download="subtitle.srt";
+a.click();
+
+}
+
+</script>
+
 </body>
 </html>
