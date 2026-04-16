@@ -1,33 +1,130 @@
-async function testGeminiAPI() {
-    const apiKey = "သင့်ရဲ့_API_KEY_ကိုဒီမှာထည့်ပါ"; 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper SRT Master Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .input-style { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; width: 100%; color: white; outline: none; transition: 0.3s; }
+        .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+        .btn-pro { background: linear-gradient(90deg, #2563eb, #059669); font-weight: bold; padding: 14px; border-radius: 12px; width: 100%; transition: 0.3s; }
+        .btn-pro:hover { opacity: 0.9; transform: translateY(-2px); }
+        .progress-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+        .progress-inner { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: 0.4s; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    const requestBody = {
-        contents: [{
-            parts: [{ text: "နေကောင်းလား" }]
-        }]
-    };
+    <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
+        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            Whisper SRT Master Pro
+        </h1>
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestBody)
-        });
+        <div class="space-y-5">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Enter Groq API Key (gsk_...)</label>
+                <input type="password" id="apiKeyInput" placeholder="Paste your API Key here" class="input-style">
+            </div>
 
-        const data = await response.json();
+            <div>
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 Audio File</label>
+                <input type="file" id="audioFile" accept="audio/*" class="input-style text-sm">
+            </div>
 
-        if (response.ok) {
-            console.log("အောင်မြင်ပါသည် - ", data.candidates[0].content.parts[0].text);
-            alert("API အလုပ်လုပ်နေပါပြီ!");
-        } else {
-            console.error("Error Detail:", data);
-            alert("Error: " + data.error.message);
+            <button id="processBtn" class="btn-pro shadow-lg">🚀 Check & Start Production</button>
+
+            <div id="statusBox" class="hidden">
+                <div class="flex justify-between text-xs mb-1">
+                    <span id="statusMsg" class="text-blue-300">Checking Key...</span>
+                    <span id="timer">0s</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressInner" class="progress-inner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatSRT(seconds) {
+            let date = new Date(0);
+            date.setSeconds(seconds);
+            let timeStr = date.toISOString().substr(11, 8);
+            let ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
+            return timeStr + "," + ms;
         }
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        alert("ချိတ်ဆက်မှု မအောင်မြင်ပါ (VPN စစ်ဆေးပါ)");
-    }
-}
+
+        document.getElementById('processBtn').onclick = async () => {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const fileInput = document.getElementById('audioFile');
+            const btn = document.getElementById('processBtn');
+            const statusBox = document.getElementById('statusBox');
+            const bar = document.getElementById('progressInner');
+            const msg = document.getElementById('statusMsg');
+            const timerLabel = document.getElementById('timer');
+
+            if (!key) return alert("API Key ထည့်ပေးပါဦး");
+            if (fileInput.files.length === 0) return alert("အသံဖိုင် ရွေးချယ်ပါ");
+
+            // Reset UI
+            btn.disabled = true;
+            statusBox.classList.remove('hidden');
+            bar.style.width = "0%";
+            
+            let timeElapsed = 0;
+            const timerInterval = setInterval(() => {
+                timeElapsed++;
+                timerLabel.innerText = timeElapsed + "s";
+                if(timeElapsed < 90) bar.style.width = timeElapsed + "%";
+            }, 1000);
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            formData.append("model", "whisper-large-v3");
+            formData.append("response_format", "verbose_json");
+
+            try {
+                msg.innerText = "Connecting to Groq AI...";
+                const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${key}` },
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    clearInterval(timerInterval);
+                    bar.style.width = "100%";
+                    msg.innerText = "✅ Done! Downloading SRT...";
+
+                    let srt = "";
+                    data.segments.forEach((seg, i) => {
+                        srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
+                    });
+
+                    // Auto Download
+                    const blob = new Blob([srt], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileInput.files[0].name.split('.')[0] + ".srt";
+                    a.click();
+                } else {
+                    throw new Error(data.error.message || "API Key Error");
+                }
+            } catch (err) {
+                clearInterval(timerInterval);
+                alert("❌ Error: " + err.message + "\n\nKey မှန်မမှန် သေချာပြန်စစ်ပေးပါ။");
+                msg.innerText = "Failed.";
+                msg.classList.replace('text-blue-300', 'text-red-400');
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
