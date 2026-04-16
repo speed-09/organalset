@@ -18,37 +18,40 @@
     <div id="result">ရလဒ်ကို ဒီမှာ ပြပေးပါမယ်...</div>
 
     <script>
-        async function testKey() {
-            const apiKey = document.getElementById('keyInput').value;
-            const resultDiv = document.getElementById('result');
-            
-            if(!apiKey) return alert("Key အရင်ထည့်ပါ");
-            
-            resultDiv.innerText = "စစ်ဆေးနေပါသည်... (VPN ဖွင့်ထားဖို့ မမေ့ပါနဲ့)";
+        async function testGeminiAPI() {
+    const apiKey = "သင့်ရဲ့_API_KEY_ကိုဒီမှာထည့်ပါ"; 
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: "Hello, are you working?" }] }]
-                    })
-                });
+    const requestBody = {
+        contents: [{
+            parts: [{ text: "နေကောင်းလား" }]
+        }]
+    };
 
-                const data = await response.json();
-                
-                if (data.candidates) {
-                    resultDiv.style.color = "#03dac6";
-                    resultDiv.innerText = "အောင်မြင်ပါတယ်! API Key အလုပ်လုပ်နေပါပြီ။ AI အဖြေ: " + data.candidates[0].content.parts[0].text;
-                } else {
-                    resultDiv.style.color = "#cf6679";
-                    resultDiv.innerText = "Error: " + JSON.stringify(data.error.message);
-                }
-            } catch (error) {
-                resultDiv.style.color = "#cf6679";
-                resultDiv.innerText = "ချိတ်ဆက်မှု မအောင်မြင်ပါ: " + error.message;
-            }
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log("အောင်မြင်ပါသည် - ", data.candidates[0].content.parts[0].text);
+            alert("API အလုပ်လုပ်နေပါပြီ!");
+        } else {
+            console.error("Error Detail:", data);
+            alert("Error: " + data.error.message);
         }
+    } catch (error) {
+        console.error("Fetch Error:", error);
+        alert("ချိတ်ဆက်မှု မအောင်မြင်ပါ (VPN စစ်ဆေးပါ)");
+    }
+}
+
     </script>
 </body>
 </html>
