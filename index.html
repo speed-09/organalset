@@ -1,24 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Gemini API Key Tester</title>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
-        input { padding: 10px; width: 80%; margin-bottom: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; background: #bb86fc; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #result { margin-top: 20px; padding: 15px; border: 1px dashed #555; background: #1e1e1e; word-wrap: break-word; }
-    </style>
-</head>
-<body>
-    <h2>Gemini API Key Tester</h2>
-    <input type="text" id="keyInput" placeholder="ဒီမှာ API Key ထည့်ပါ...">
-    <br>
-    <button onclick="testKey()">စမ်းသပ်မည်</button>
-    <div id="result">ရလဒ်ကို ဒီမှာ ပြပေးပါမယ်...</div>
-
-    <script>
-        async function testGeminiAPI() {
+async function testGeminiAPI() {
     const apiKey = "သင့်ရဲ့_API_KEY_ကိုဒီမှာထည့်ပါ"; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
@@ -51,6 +31,3 @@
         alert("ချိတ်ဆက်မှု မအောင်မြင်ပါ (VPN စစ်ဆေးပါ)");
     }
 }
-    </script>
-</body>
-</html>
