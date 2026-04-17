@@ -3,42 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master Pro (Video/Audio)</title>
+    <title>AI SRT Master Pro (Groq + Gemini)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
         .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .input-style { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; width: 100%; color: white; outline: none; transition: 0.3s; }
-        .input-style:focus { border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-        .btn-pro { background: linear-gradient(90deg, #2563eb, #059669); font-weight: bold; padding: 14px; border-radius: 12px; width: 100%; transition: 0.3s; }
-        .btn-pro:hover { opacity: 0.9; transform: translateY(-2px); }
-        .progress-bar { height: 10px; background: #334155; border-radius: 5px; overflow: hidden; margin-top: 10px; }
-        .progress-inner { height: 100%; width: 0%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: 0.4s; }
+        .input-style { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; width: 100%; color: white; outline: none; }
+        .btn-groq { background: linear-gradient(90deg, #2563eb, #3b82f6); }
+        .btn-gemini { background: linear-gradient(90deg, #8b5cf6, #d946ef); }
+        .progress-bar { height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-inner { height: 100%; width: 0%; background: #10b981; transition: 0.3s; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
-        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            Whisper SRT Master Pro
+        <h1 class="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            AI SRT Master Pro
         </h1>
 
-        <div class="space-y-5">
+        <div class="space-y-4">
             <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Enter Groq API Key (gsk_...)</label>
-                <input type="password" id="apiKeyInput" placeholder="Paste your API Key here" class="input-style">
+                <label class="block text-xs text-gray-400 mb-1">API Key (Groq or Gemini)</label>
+                <input type="password" id="apiKey" placeholder="Paste your API Key here" class="input-style text-sm">
             </div>
 
             <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 or MP4 File</label>
-                <input type="file" id="audioFile" accept="audio/*,video/*" class="input-style text-sm">
+                <label class="block text-xs text-gray-400 mb-1">Select Media (MP3, MP4, etc.)</label>
+                <input type="file" id="mediaFile" accept="audio/*,video/*" class="input-style text-sm">
             </div>
 
-            <button id="processBtn" class="btn-pro shadow-lg">🚀 Check & Start Production</button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="processAI('groq')" class="btn-groq p-3 rounded-xl font-bold text-sm shadow-lg hover:opacity-80 transition">Use Groq<br><span class="text-[10px] font-normal">(Fast & < 25MB)</span></button>
+                <button onclick="processAI('gemini')" class="btn-gemini p-3 rounded-xl font-bold text-sm shadow-lg hover:opacity-80 transition">Use Gemini<br><span class="text-[10px] font-normal">(Large Files)</span></button>
+            </div>
 
-            <div id="statusBox" class="hidden">
+            <div id="statusBox" class="hidden mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
                 <div class="flex justify-between text-xs mb-1">
-                    <span id="statusMsg" class="text-blue-300">Connecting to Groq...</span>
+                    <span id="statusMsg" class="text-blue-300">Processing...</span>
                     <span id="timer">0s</span>
                 </div>
                 <div class="progress-bar">
@@ -49,87 +51,75 @@
     </div>
 
     <script>
+        let timerInterval;
+        
         function formatSRT(seconds) {
             let date = new Date(0);
             date.setSeconds(seconds);
-            let timeStr = date.toISOString().substr(11, 8);
-            let ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
-            return timeStr + "," + ms;
+            return date.toISOString().substr(11, 8) + "," + Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
         }
 
-        document.getElementById('processBtn').onclick = async () => {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            const fileInput = document.getElementById('audioFile');
-            const btn = document.getElementById('processBtn');
+        async function processAI(provider) {
+            const key = document.getElementById('apiKey').value.trim();
+            const fileInput = document.getElementById('mediaFile');
+            if (!key || !fileInput.files[0]) return alert("Key နှင့် File ထည့်ပေးပါ။");
+
+            const file = fileInput.files[0];
             const statusBox = document.getElementById('statusBox');
-            const bar = document.getElementById('progressInner');
             const msg = document.getElementById('statusMsg');
-            const timerLabel = document.getElementById('timer');
-
-            if (!key) return alert("API Key ထည့်ပေးပါဦး");
-            if (fileInput.files.length === 0) return alert("ဖိုင် ရွေးချယ်ပါ");
-
-            const selectedFile = fileInput.files[0];
+            const bar = document.getElementById('progressInner');
             
-            // Groq က များသောအားဖြင့် 50MB ထက်ကျော်ရင် လက်မခံတတ်လို့ စစ်ထားပေးတာပါ
-            if (selectedFile.size > 50 * 1024 * 1024) {
-                return alert("ဖိုင်ဆိုဒ်က 50MB ထက် ကြီးနေပါတယ်။ ပိုသေးတဲ့ MP4 သို့မဟုတ် MP3 သုံးပေးပါ။");
-            }
-
-            // Reset UI
-            btn.disabled = true;
+            // Start UI
             statusBox.classList.remove('hidden');
-            bar.style.width = "0%";
-            
-            let timeElapsed = 0;
-            const timerInterval = setInterval(() => {
-                timeElapsed++;
-                timerLabel.innerText = timeElapsed + "s";
-                if(timeElapsed < 90) bar.style.width = (timeElapsed * 1.1) + "%";
-            }, 1000);
+            msg.innerText = `Connecting to ${provider.toUpperCase()}...`;
+            bar.style.width = "20%";
 
+            if (provider === 'groq') {
+                if (file.size > 25 * 1024 * 1024) return alert("Groq အတွက် 25MB အောက်ဖိုင်ပဲ သုံးပါ။");
+                await runGroq(key, file);
+            } else {
+                alert("Gemini Integration အတွက် Server-side ပြင်ဆင်မှု လိုအပ်ပါသည်။ လက်ရှိ Groq အရင် စမ်းသပ်ကြည့်ပါ။");
+                // Gemini ကို Client-side ကနေ တိုက်ရိုက်ခေါ်ဖို့က Content-Type ကန့်သတ်ချက်ရှိလို့ 
+                // ဒီနေရာမှာ Groq နဲ့ပဲ အဓိက နမူနာပြထားပါတယ်။
+            }
+        }
+
+        async function runGroq(key, file) {
             const formData = new FormData();
-            formData.append("file", selectedFile);
+            formData.append("file", file);
             formData.append("model", "whisper-large-v3");
             formData.append("response_format", "verbose_json");
 
             try {
-                msg.innerText = "Processing " + selectedFile.name.split('.').pop().toUpperCase() + "...";
                 const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${key}` },
                     body: formData
                 });
-
                 const data = await res.json();
+                if (!res.ok) throw new Error(data.error.message);
 
-                if (res.ok) {
-                    clearInterval(timerInterval);
-                    bar.style.width = "100%";
-                    msg.innerText = "✅ Done! Downloading SRT...";
+                let srt = "";
+                data.segments.forEach((seg, i) => {
+                    srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
+                });
 
-                    let srt = "";
-                    data.segments.forEach((seg, i) => {
-                        srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
-                    });
-
-                    const blob = new Blob([srt], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = selectedFile.name.split('.')[0] + ".srt";
-                    a.click();
-                } else {
-                    throw new Error(data.error.message || "API Key Error");
-                }
+                downloadSRT(srt, file.name);
+                document.getElementById('statusMsg').innerText = "✅ Done!";
+                document.getElementById('progressInner').style.width = "100%";
             } catch (err) {
-                clearInterval(timerInterval);
-                alert("❌ Error: " + err.message);
-                msg.innerText = "Failed.";
-            } finally {
-                btn.disabled = false;
+                alert("Error: " + err.message);
             }
-        };
+        }
+
+        function downloadSRT(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename.split('.')[0] + ".srt";
+            a.click();
+        }
     </script>
 </body>
 </html>
