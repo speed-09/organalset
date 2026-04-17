@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Whisper SRT Master Pro</title>
+    <title>Whisper SRT Master Pro (Video/Audio)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -30,15 +30,15 @@
             </div>
 
             <div>
-                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 Audio File</label>
-                <input type="file" id="audioFile" accept="audio/*" class="input-style text-sm">
+                <label class="block text-xs text-gray-400 mb-1 ml-1">Select MP3 or MP4 File</label>
+                <input type="file" id="audioFile" accept="audio/*,video/*" class="input-style text-sm">
             </div>
 
             <button id="processBtn" class="btn-pro shadow-lg">🚀 Check & Start Production</button>
 
             <div id="statusBox" class="hidden">
                 <div class="flex justify-between text-xs mb-1">
-                    <span id="statusMsg" class="text-blue-300">Checking Key...</span>
+                    <span id="statusMsg" class="text-blue-300">Connecting to Groq...</span>
                     <span id="timer">0s</span>
                 </div>
                 <div class="progress-bar">
@@ -67,7 +67,14 @@
             const timerLabel = document.getElementById('timer');
 
             if (!key) return alert("API Key ထည့်ပေးပါဦး");
-            if (fileInput.files.length === 0) return alert("အသံဖိုင် ရွေးချယ်ပါ");
+            if (fileInput.files.length === 0) return alert("ဖိုင် ရွေးချယ်ပါ");
+
+            const selectedFile = fileInput.files[0];
+            
+            // Groq က များသောအားဖြင့် 25MB ထက်ကျော်ရင် လက်မခံတတ်လို့ စစ်ထားပေးတာပါ
+            if (selectedFile.size > 25 * 1024 * 1024) {
+                return alert("ဖိုင်ဆိုဒ်က 25MB ထက် ကြီးနေပါတယ်။ ပိုသေးတဲ့ MP4 သို့မဟုတ် MP3 သုံးပေးပါ။");
+            }
 
             // Reset UI
             btn.disabled = true;
@@ -78,16 +85,16 @@
             const timerInterval = setInterval(() => {
                 timeElapsed++;
                 timerLabel.innerText = timeElapsed + "s";
-                if(timeElapsed < 90) bar.style.width = timeElapsed + "%";
+                if(timeElapsed < 90) bar.style.width = (timeElapsed * 1.1) + "%";
             }, 1000);
 
             const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
+            formData.append("file", selectedFile);
             formData.append("model", "whisper-large-v3");
             formData.append("response_format", "verbose_json");
 
             try {
-                msg.innerText = "Connecting to Groq AI...";
+                msg.innerText = "Processing " + selectedFile.name.split('.').pop().toUpperCase() + "...";
                 const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${key}` },
@@ -106,21 +113,19 @@
                         srt += `${i + 1}\n${formatSRT(seg.start)} --> ${formatSRT(seg.end)}\n${seg.text.trim()}\n\n`;
                     });
 
-                    // Auto Download
                     const blob = new Blob([srt], { type: 'text/plain' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = fileInput.files[0].name.split('.')[0] + ".srt";
+                    a.download = selectedFile.name.split('.')[0] + ".srt";
                     a.click();
                 } else {
                     throw new Error(data.error.message || "API Key Error");
                 }
             } catch (err) {
                 clearInterval(timerInterval);
-                alert("❌ Error: " + err.message + "\n\nKey မှန်မမှန် သေချာပြန်စစ်ပေးပါ။");
+                alert("❌ Error: " + err.message);
                 msg.innerText = "Failed.";
-                msg.classList.replace('text-blue-300', 'text-red-400');
             } finally {
                 btn.disabled = false;
             }
