@@ -926,6 +926,14 @@
                                 const data = await response.json();
                                 const translation = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
+                                if (!translation || translation.length === 0) {
+                                    console.warn('Empty translation received for:', subtitle.originalText);
+                                    return {
+                                        ...subtitle,
+                                        translatedText: subtitle.originalText // Fallback to original if empty
+                                    };
+                                }
+
                                 return {
                                     ...subtitle,
                                     translatedText: translation.trim()
@@ -952,7 +960,7 @@
 
                     // Add delay between batches to avoid rate limiting
                     if (i + batchSize < state.subtitles.length) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                 }
 
@@ -989,21 +997,31 @@
             try {
                 showStatus('Initializing FFmpeg...', 'info', 10);
 
-                const { FFmpeg, fetchFile } = FFmpeg;
-                const ffmpeg = new FFmpeg.FFmpeg();
-
-                // Load FFmpeg
-                if (!ffmpeg.isLoaded()) {
-                    await ffmpeg.load();
+                // Check if FFmpeg is available
+                if (typeof FFmpeg === 'undefined') {
+                    throw new Error('FFmpeg library not loaded. Please refresh the page.');
                 }
 
-                showStatus('Loading video file...', 'info', 20);
+                const { FFmpeg: FFmpegClass } = window.FFmpeg;
+                const { fetchFile } = window.FFmpeg.FFmpegUtil || window.FFmpeg.util;
+
+                if (!FFmpegClass) {
+                    throw new Error('FFmpeg class not found');
+                }
+
+                const ffmpeg = new FFmpegClass();
+
+                // Load FFmpeg
+                showStatus('Loading FFmpeg core...', 'info', 15);
+                await ffmpeg.load();
+
+                showStatus('Loading video file...', 'info', 25);
 
                 // Read video file
                 const videoData = await state.selectedFile.arrayBuffer();
                 ffmpeg.FS('writeFile', 'input.mp4', new Uint8Array(videoData));
 
-                // Create SRT file
+                // Create SRT file with UTF-8 encoding for Burmese
                 const srtData = new TextEncoder().encode(state.translatedSrt);
                 ffmpeg.FS('writeFile', 'subtitles.srt', srtData);
 
@@ -1012,14 +1030,14 @@
                 // Run FFmpeg command to hardcode subtitles
                 await ffmpeg.run(
                     '-i', 'input.mp4',
-                    '-vf', `subtitles=subtitles.srt:force_style='FontName=Arial,FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1'`,
+                    '-vf', `subtitles=subtitles.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2'`,
                     '-c:a', 'aac',
                     '-c:v', 'libx264',
-                    '-preset', 'fast',
+                    '-preset', 'ultrafast',
                     'output.mp4'
                 );
 
-                showStatus('Finalizing video...', 'info', 80);
+                showStatus('Finalizing video...', 'info', 85);
 
                 // Read output file
                 const outputData = ffmpeg.FS('readFile', 'output.mp4');
@@ -1036,7 +1054,7 @@
 
             } catch (error) {
                 console.error('Hardcoding error:', error);
-                showStatus('Hardcoding failed: ' + error.message, 'error');
+                showStatus('Hardcoding failed: ' + error.message + '. Try a smaller video file.', 'error');
             } finally {
                 state.processStep = 'idle';
                 document.getElementById('hardcodeBtn').disabled = false;
