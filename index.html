@@ -601,34 +601,47 @@
             const progressPercent = document.getElementById('progress-percent');
 
             try {
-                // Simulate progress
-                let progress = 0;
-                const progressInterval = setInterval(() => {
-                    if (progress < 90) {
-                        progress += Math.random() * 20;
-                        progressFill.style.width = Math.min(progress, 90) + '%';
-                        progressPercent.textContent = Math.floor(Math.min(progress, 90)) + '%';
-                    }
-                }, 500);
+                progressFill.style.width = '10%';
+                progressPercent.textContent = '10%';
+
+                console.log('Sending transcription request to Groq API...');
+                console.log('File size:', (videoFile.size / 1024 / 1024).toFixed(2), 'MB');
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
 
                 const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${state.groqApiKey}`
                     },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
 
-                clearInterval(progressInterval);
-                progressFill.style.width = '100%';
-                progressPercent.textContent = '100%';
+                clearTimeout(timeoutId);
+
+                progressFill.style.width = '50%';
+                progressPercent.textContent = '50%';
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error?.message || 'Transcription မအောင်မြင်ပါ');
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    let errorMessage = 'Transcription မအောင်မြင်ပါ';
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.error?.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = errorText || errorMessage;
+                    }
+                    throw new Error(errorMessage);
                 }
 
+                progressFill.style.width = '75%';
+                progressPercent.textContent = '75%';
+
                 const data = await response.json();
+                console.log('Transcription response received:', data);
                 
                 // Handle both segments and text response
                 let segments = [];
@@ -643,6 +656,9 @@
                     }];
                 }
                 
+                progressFill.style.width = '90%';
+                progressPercent.textContent = '90%';
+
                 // Convert segments to SRT format
                 const subtitles = segments.map((segment, index) => ({
                     index: index + 1,
@@ -653,8 +669,13 @@
                     endSeconds: segment.end || 10
                 }));
 
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                console.log('Subtitles generated:', subtitles.length, 'items');
                 return subtitles;
             } catch (error) {
+                console.error('Transcription error:', error);
                 throw error;
             }
         }
