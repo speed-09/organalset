@@ -499,6 +499,15 @@
                         </div>
                     </div>
 
+                    <button class="btn-primary" onclick="saveApiKeys()">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Save Keys
+                    </button>
+
                     <p style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 1rem;">
                         Get your API keys from <a href="https://console.groq.com" target="_blank">Groq Console</a> and <a href="https://ai.google.dev" target="_blank">Google AI Studio</a>
                     </p>
@@ -640,14 +649,50 @@
             }
         });
 
+        // Load API Keys from Local Storage on Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedGroqKey = localStorage.getItem('groqApiKey');
+            const savedGeminiKey = localStorage.getItem('geminiApiKey');
+            
+            if (savedGroqKey) {
+                document.getElementById('groqApiKey').value = savedGroqKey;
+                state.groqApiKey = savedGroqKey;
+            }
+            
+            if (savedGeminiKey) {
+                document.getElementById('geminiApiKey').value = savedGeminiKey;
+                state.geminiApiKey = savedGeminiKey;
+            }
+        });
+
         // API Key Handlers
         document.getElementById('groqApiKey').addEventListener('change', (e) => {
+            state.groqApiKey = e.target.value;
+        });
+
+        document.getElementById('groqApiKey').addEventListener('input', (e) => {
             state.groqApiKey = e.target.value;
         });
 
         document.getElementById('geminiApiKey').addEventListener('change', (e) => {
             state.geminiApiKey = e.target.value;
         });
+
+        document.getElementById('geminiApiKey').addEventListener('input', (e) => {
+            state.geminiApiKey = e.target.value;
+        });
+
+        // Save API Keys to Local Storage
+        function saveApiKeys() {
+            if (!state.groqApiKey || !state.geminiApiKey) {
+                showStatus('Please enter both API keys', 'error');
+                return;
+            }
+
+            localStorage.setItem('groqApiKey', state.groqApiKey);
+            localStorage.setItem('geminiApiKey', state.geminiApiKey);
+            showStatus('API keys saved successfully! They will be loaded automatically next time.', 'success');
+        }
 
         // Toggle Password Visibility
         function togglePassword(inputId) {
