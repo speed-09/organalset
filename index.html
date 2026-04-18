@@ -570,11 +570,8 @@
             progressContainer.classList.remove('hidden');
 
             try {
-                // Convert video to audio
-                const audioBlob = await extractAudioFromVideo(state.videoFile);
-                
-                // Transcribe using Groq
-                const subtitles = await transcribeWithGroq(audioBlob);
+                // Send video file directly to Groq API
+                const subtitles = await transcribeWithGroq(state.videoFile);
                 
                 state.subtitles = subtitles;
                 renderSubtitleList();
@@ -593,27 +590,9 @@
             }
         }
 
-        function extractAudioFromVideo(videoFile) {
-            return new Promise((resolve, reject) => {
-                const video = document.getElementById('video-player');
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // For simplicity, we'll use the video file directly if it's already audio-compatible
-                // In production, you might want to use FFmpeg.js or send to a backend
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    resolve(new Blob([e.target.result], { type: 'audio/mpeg' }));
-                };
-                reader.onerror = () => reject(new Error('ဗီဒီယို ဖိုင်ကို ဖတ်လို့မရပါ'));
-                reader.readAsArrayBuffer(videoFile);
-            });
-        }
-
-        async function transcribeWithGroq(audioBlob) {
+        async function transcribeWithGroq(videoFile) {
             const formData = new FormData();
-            formData.append('file', audioBlob, 'audio.mp3');
+            formData.append('file', videoFile);
             formData.append('model', 'whisper-large-v3');
             formData.append('response_format', 'verbose_json');
             formData.append('language', 'my');
@@ -651,14 +630,27 @@
 
                 const data = await response.json();
                 
+                // Handle both segments and text response
+                let segments = [];
+                if (data.segments && Array.isArray(data.segments)) {
+                    segments = data.segments;
+                } else if (data.text) {
+                    // If only text is returned, create a single segment
+                    segments = [{
+                        start: 0,
+                        end: 10,
+                        text: data.text
+                    }];
+                }
+                
                 // Convert segments to SRT format
-                const subtitles = data.segments.map((segment, index) => ({
+                const subtitles = segments.map((segment, index) => ({
                     index: index + 1,
-                    startTime: formatTime(segment.start),
-                    endTime: formatTime(segment.end),
-                    text: segment.text.trim(),
-                    startSeconds: segment.start,
-                    endSeconds: segment.end
+                    startTime: formatTime(segment.start || 0),
+                    endTime: formatTime(segment.end || 10),
+                    text: (segment.text || '').trim(),
+                    startSeconds: segment.start || 0,
+                    endSeconds: segment.end || 10
                 }));
 
                 return subtitles;
@@ -745,10 +737,10 @@
         function parseTimeToSeconds(timeStr) {
             const parts = timeStr.split(':');
             if (parts.length !== 3) return 0;
-            const hours = parseInt(parts[0]);
-            const minutes = parseInt(parts[1]);
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
             const secondsAndMs = parts[2].split(',');
-            const seconds = parseInt(secondsAndMs[0]);
+            const seconds = parseInt(secondsAndMs[0]) || 0;
             const ms = parseInt(secondsAndMs[1] || 0);
             return hours * 3600 + minutes * 60 + seconds + ms / 1000;
         }
