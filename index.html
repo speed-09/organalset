@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI စာတန်းထိုး ပညာရှင် Pro (Gemini Only)</title>
+    <title>AI စာတန်းထိုး ပညာရှင် Pro (Gemini Full Flash)</title>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/ffmpeg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/dist/util.min.js"></script>
     <style>
@@ -303,7 +303,7 @@
             </div>
             <div class="header-text">
                 <h1>AI စာတန်းထိုး ပညာရှင် Pro</h1>
-                <p>Gemini API တစ်ခုတည်းဖြင့် အလိုအလျောက် စာတန်းထိုးခြင်း</p>
+                <p>Gemini API Flash Model အစုံဖြင့် အလိုအလျောက် စာတန်းထိုးခြင်း</p>
             </div>
         </div>
     </header>
@@ -322,11 +322,22 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Gemini Model</label>
+                        <label>Gemini Model (Flash Variants အားလုံး)</label>
                         <select id="geminiModel">
-                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (အကြံပြုသည်)</option>
-                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <optgroup label="Gemini Flash Models">
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                                <option value="gemini-3.1-flash-lite-preview">Gemini 3.1 Flash Lite Preview</option>
+                                <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B</option>
+                            </optgroup>
+                            <optgroup label="Gemini Pro Models">
+                                <option value="gemini-pro">Gemini Pro</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="gemini-2.0-pro">Gemini 2.0 Pro</option>
+                                <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview</option>
+                            </optgroup>
                         </select>
                     </div>
 
@@ -378,7 +389,7 @@
     <script>
         let state = {
             geminiApiKey: '',
-            geminiModel: 'gemini-1.5-flash',
+            geminiModel: 'gemini-2.5-flash',
             selectedFile: null,
             subtitles: [],
             originalSrt: '',
@@ -405,7 +416,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             state.geminiApiKey = localStorage.getItem('geminiApiKey') || '';
-            state.geminiModel = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
+            state.geminiModel = localStorage.getItem('geminiModel') || 'gemini-2.5-flash';
             document.getElementById('geminiApiKey').value = state.geminiApiKey;
             document.getElementById('geminiModel').value = state.geminiModel;
         });
@@ -446,9 +457,6 @@
             
             try {
                 showStatus('Gemini သို့ ဖိုင်ပေးပို့နေသည်...', 'info', 20);
-                
-                // Gemini API ဖြင့် Transcription ရယူရန် (File Upload လုပ်စရာမလိုဘဲ Base64 ဖြင့် ပို့မည် - သေးငယ်သောဖိုင်များအတွက်)
-                // မှတ်ချက် - ဖိုင်ကြီးလျှင် File API သုံးရန်လိုသော်လည်း client-side တွင် base64 က ပိုလွယ်ကူပါသည်
                 const base64Data = await fileToBase64(state.selectedFile);
                 
                 showStatus('Gemini မှ စာသားပြောင်းလဲပြီး ဘာသာပြန်နေသည်...', 'info', 50);
@@ -518,7 +526,6 @@
                 const srtData = new TextEncoder().encode(state.translatedSrt);
                 await ffmpeg.writeFile('sub.srt', srtData);
 
-                // မြန်မာစာအတွက် Font သတ်မှတ်ချက် (System font ကို သုံးရန် ကြိုးစားမည်)
                 await ffmpeg.exec([
                     '-i', 'input.mp4',
                     '-vf', "subtitles=sub.srt:force_style='FontSize=20,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1'",
@@ -532,7 +539,7 @@
                 document.getElementById('downloadVideoBtn').style.display = 'block';
                 showStatus('ဗီဒီယို အဆင်သင့်ဖြစ်ပါပြီ', 'success', 100);
             } catch (err) {
-                showStatus('Hardcode လုပ်၍မရပါ (ဖိုင်အရွယ်အစား ကြီးလွန်းခြင်း ဖြစ်နိုင်သည်)', 'error');
+                showStatus('Hardcode လုပ်၍မရပါ', 'error');
             } finally {
                 btn.disabled = false;
             }
