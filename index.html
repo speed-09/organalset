@@ -4,860 +4,424 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Subtitle Master Pro</title>
-    <!-- Updated FFmpeg scripts to latest working versions -->
+    <!-- Latest working FFmpeg libraries -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
     <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/index.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
 
         :root {
             --background: #0d1117;
             --foreground: #e8e8e8;
-            --card: #1e2530;
-            --card-foreground: #e8e8e8;
+            --card: #161b22;
             --accent: #00d9ff;
-            --accent-foreground: #0d1117;
+            --accent-hover: #00b8d4;
             --border: #30363d;
-            --muted: #2d333b;
-            --muted-foreground: #8b949e;
             --destructive: #f85149;
+            --success: #238636;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background-color: var(--background);
             color: var(--foreground);
             font-family: 'Inter', sans-serif;
-            line-height: 1.6;
-            overflow-x: hidden;
+            line-height: 1.5;
+            padding-bottom: 2rem;
         }
 
-        /* Header */
         header {
+            background: rgba(22, 27, 34, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 1rem;
+            text-align: center;
             border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
-            background-color: rgba(20, 21, 26, 0.5);
             position: sticky;
             top: 0;
-            z-index: 50;
+            z-index: 100;
         }
 
-        .header-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1.5rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .header-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            background: rgba(0, 217, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(12px);
-        }
-
-        .header-icon svg {
-            width: 1.5rem;
-            height: 1.5rem;
-            color: var(--accent);
-        }
-
-        .header-text h1 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .header-text p {
-            font-size: 0.875rem;
-            color: var(--muted-foreground);
-        }
-
-        /* Main Container */
-        main {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 1024px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Card Styles */
-        .card {
-            background: var(--card);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            backdrop-filter: blur(12px);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: rgba(0, 217, 255, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
-        }
-
-        .card h2 {
+        .header-title {
             font-family: 'Poppins', sans-serif;
             font-size: 1.5rem;
             font-weight: 700;
+            background: linear-gradient(90deg, #00d9ff, #007bff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.25rem;
             margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        /* Form Elements */
-        .form-group {
-            margin-bottom: 1rem;
-        }
+        h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent); }
 
-        label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--foreground);
-        }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 0.5rem; opacity: 0.8; }
 
-        input[type="text"],
-        input[type="password"],
-        textarea {
+        input, select {
             width: 100%;
-            padding: 0.75rem;
-            background-color: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.8rem;
+            background: #010409;
+            border: 1px solid var(--border);
             border-radius: 0.5rem;
-            color: var(--foreground);
-            font-family: 'Inter', sans-serif;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
+            color: white;
+            font-size: 0.9rem;
         }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-            background-color: rgba(0, 217, 255, 0.05);
-            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--muted-foreground);
-            cursor: pointer;
-            padding: 0.5rem;
-        }
-
-        .toggle-password:hover {
-            color: var(--foreground);
-        }
-
-        /* Buttons */
-        button {
-            padding: 0.75rem 1.5rem;
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
             border: none;
             border-radius: 0.5rem;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-        }
-
-        .btn-primary {
-            width: 100%;
-            background-color: var(--accent);
-            color: var(--accent-foreground);
+            transition: 0.2s;
             margin-bottom: 0.75rem;
         }
 
-        .btn-primary:hover:not(:disabled) {
-            background-color: #00b8d4;
-            box-shadow: 0 8px 24px rgba(0, 217, 255, 0.3);
-        }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            width: 100%;
-            background-color: transparent;
-            color: var(--foreground);
-            border: 1px solid var(--border);
-            margin-bottom: 0.75rem;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background-color: rgba(0, 217, 255, 0.1);
-            border-color: var(--accent);
-        }
-
-        .btn-small {
-            padding: 0.5rem 1rem;
-            font-size: 0.75rem;
-        }
-
-        /* Status Messages */
-        .status-message {
+        .status-msg {
             padding: 1rem;
             border-radius: 0.5rem;
             margin-bottom: 1rem;
-            display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
+            font-size: 0.9rem;
+            display: none;
         }
+        .status-error { background: rgba(248, 81, 73, 0.1); border: 1px solid var(--destructive); color: var(--destructive); display: block; }
+        .status-success { background: rgba(35, 134, 54, 0.1); border: 1px solid var(--success); color: #3fb950; display: block; }
 
-        .status-message.info {
-            background-color: rgba(0, 217, 255, 0.1);
-            border: 1px solid rgba(0, 217, 255, 0.3);
-            color: var(--accent);
-        }
-
-        .status-message.success {
-            background-color: rgba(0, 200, 100, 0.1);
-            border: 1px solid rgba(0, 200, 100, 0.3);
-            color: #00c864;
-        }
-
-        .status-message.error {
-            background-color: rgba(248, 81, 73, 0.1);
-            border: 1px solid rgba(248, 81, 73, 0.3);
-            color: var(--destructive);
-        }
-
-        .status-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            flex-shrink: 0;
-            margin-top: 0.125rem;
-        }
-
-        .progress-bar {
+        .progress-container {
             width: 100%;
-            height: 0.5rem;
-            background-color: var(--muted);
-            border-radius: 9999px;
+            height: 6px;
+            background: #30363d;
+            border-radius: 3px;
+            margin-top: 0.5rem;
             overflow: hidden;
-            margin-top: 0.75rem;
         }
+        .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: 0.3s; }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #00b8d4);
-            border-radius: 9999px;
-            transition: width 0.3s ease;
-        }
-
-        /* File Info */
-        .file-info {
-            padding: 0.75rem;
-            background-color: rgba(0, 217, 255, 0.05);
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            border-radius: 0.5rem;
-            margin-top: 0.75rem;
-        }
-
-        .file-info p {
-            font-size: 0.875rem;
-            margin: 0.25rem 0;
-        }
-
-        .file-info .filename {
-            font-weight: 600;
-            color: var(--foreground);
-            word-break: break-all;
-        }
-
-        .file-info .filesize {
-            font-size: 0.75rem;
-            color: var(--muted-foreground);
-        }
-
-        /* Video Preview */
-        .video-preview {
-            width: 100%;
-            max-height: 24rem;
-            background-color: #000;
-            border-radius: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        /* Subtitle Editor */
-        .subtitle-list {
-            max-height: 24rem;
-            overflow-y: auto;
-        }
+        #videoPreview { width: 100%; border-radius: 0.5rem; margin-top: 1rem; background: #000; }
 
         .subtitle-item {
+            background: #0d1117;
             padding: 1rem;
-            background-color: rgba(0, 217, 255, 0.05);
-            border: 1px solid rgba(0, 217, 255, 0.2);
             border-radius: 0.5rem;
             margin-bottom: 0.75rem;
+            border-left: 3px solid var(--accent);
         }
+        .sub-time { font-size: 0.75rem; color: #8b949e; margin-bottom: 0.5rem; }
+        .sub-text-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+        .sub-original { font-size: 0.85rem; opacity: 0.7; }
+        .sub-translated { font-size: 0.95rem; color: var(--accent); font-weight: 500; cursor: pointer; }
 
-        .subtitle-time {
-            font-size: 0.75rem;
-            color: var(--muted-foreground);
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .subtitle-id {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            background-color: rgba(0, 217, 255, 0.2);
-            color: var(--accent);
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-        }
-
-        .subtitle-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        .subtitle-column h4 {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--muted-foreground);
-            margin-bottom: 0.25rem;
-        }
-
-        .subtitle-text {
-            font-size: 0.875rem;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            min-height: 3rem;
-            cursor: pointer;
-        }
-
-        .subtitle-text:hover {
-            background: rgba(0, 217, 255, 0.1);
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @media (min-width: 600px) {
+            .sub-text-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <div class="header-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-            </div>
-            <div class="header-text">
-                <h1>AI Subtitle Master Pro</h1>
-                <p>Automatic Transcription & Burmese Translation</p>
-            </div>
+
+<header>
+    <div class="header-title">AI Subtitle Master Pro</div>
+    <p style="font-size: 0.8rem; opacity: 0.6;">Automatic Transcription & Translation</p>
+</header>
+
+<main>
+    <div id="statusArea"></div>
+
+    <!-- Config -->
+    <div class="card">
+        <h2>Configuration</h2>
+        <div class="form-group">
+            <label>Groq API Key (Whisper)</label>
+            <input type="password" id="groqKey" placeholder="gsk_...">
         </div>
-    </header>
-
-    <main>
-        <div class="grid">
-            <!-- Left Sidebar -->
-            <div class="sidebar">
-                <!-- API Configuration -->
-                <div class="card fade-in">
-                    <h2>Configuration</h2>
-                    <div class="form-group">
-                        <label>Groq API Key (Whisper)</label>
-                        <div class="input-wrapper">
-                            <input type="password" id="groqApiKey" placeholder="gsk_...">
-                            <button class="toggle-password" onclick="togglePassword('groqApiKey')">👁️</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Gemini API Key (Translation)</label>
-                        <div class="input-wrapper">
-                            <input type="password" id="geminiApiKey" placeholder="AIza...">
-                            <button class="toggle-password" onclick="togglePassword('geminiApiKey')">👁️</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Gemini Model</label>
-                        <select id="geminiModel" style="width: 100%; padding: 0.75rem; background-color: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; color: var(--foreground); font-family: 'Inter', sans-serif; font-size: 0.875rem; transition: all 0.2s ease; cursor: pointer;">
-                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                            <option value="gemini-pro">Gemini Pro</option>
-                        </select>
-                    </div>
-
-                    <button class="btn-primary" onclick="saveApiKeys()">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                            <polyline points="7 3 7 8 15 8"></polyline>
-                        </svg>
-                        Save Keys
-                    </button>
-
-                    <p style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 1rem;">
-                        Get your API keys from <a href="https://console.groq.com" target="_blank">Groq Console</a> and <a href="https://ai.google.dev" target="_blank">Google AI Studio</a>
-                    </p>
-                </div>
-
-                <!-- File Upload -->
-                <div class="card fade-in" style="margin-top: 1.5rem;">
-                    <h2>Upload Media</h2>
-                    <input type="file" id="fileInput" accept="audio/*,video/*" style="display: none;">
-                    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        Select File
-                    </button>
-                    <div id="fileInfo"></div>
-                </div>
-
-                <!-- Processing Controls -->
-                <div class="card fade-in" style="margin-top: 1.5rem;">
-                    <h2>Processing</h2>
-                    <button class="btn-primary" id="transcribeBtn" onclick="handleTranscribe()">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        Transcribe
-                    </button>
-                    <button class="btn-primary" id="translateBtn" onclick="handleTranslate()">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                            <line x1="9" y1="9" x2="9" y2="9.01"></line>
-                            <line x1="15" y1="9" x2="15" y2="9.01"></line>
-                        </svg>
-                        Translate to Burmese
-                    </button>
-                    <button class="btn-primary" id="hardcodeBtn" onclick="handleHardcode()">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                        </svg>
-                        Hardcode Video
-                    </button>
-                </div>
-
-                <!-- Downloads -->
-                <div class="card fade-in" style="margin-top: 1.5rem; display: none;" id="downloadSection">
-                    <h2>Downloads</h2>
-                    <button class="btn-secondary" id="downloadOriginalBtn" onclick="downloadFile('original')">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Original SRT
-                    </button>
-                    <button class="btn-secondary" id="downloadTranslatedBtn" onclick="downloadFile('translated')" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Burmese SRT
-                    </button>
-                    <button class="btn-secondary" id="downloadVideoBtn" onclick="downloadFile('video')" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Hardcoded Video
-                    </button>
-                </div>
-            </div>
-
-            <!-- Right Content Area -->
-            <div>
-                <!-- Status Message -->
-                <div id="statusMessage"></div>
-
-                <!-- Video Preview -->
-                <div class="card fade-in" id="videoPreviewCard" style="display: none;">
-                    <h2>Video Preview</h2>
-                    <video id="videoPreview" class="video-preview" controls></video>
-                </div>
-
-                <!-- Subtitle Editor -->
-                <div class="card fade-in" id="subtitleEditorCard" style="display: none; margin-top: 1.5rem;">
-                    <h2>Subtitle Editor</h2>
-                    <p style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 1rem;">
-                        Edit translations in real-time. Changes will be reflected in the final output.
-                    </p>
-                    <div class="subtitle-list" id="subtitleList"></div>
-                </div>
-            </div>
+        <div class="form-group">
+            <label>Gemini API Key (Translation)</label>
+            <input type="password" id="geminiKey" placeholder="AIza...">
         </div>
-    </main>
+        <div class="form-group">
+            <label>Gemini Model</label>
+            <select id="geminiModel">
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
+                <option value="gemini-pro">Gemini Pro</option>
+            </select>
+        </div>
+        <button class="btn btn-secondary" onclick="saveKeys()">Save Settings</button>
+    </div>
 
-    <script>
-        // State Management
-        let state = {
-            groqApiKey: '',
-            geminiApiKey: '',
-            geminiModel: 'gemini-1.5-flash',
-            selectedFile: null,
-            videoPreviewUrl: '',
-            subtitles: [],
-            originalSrt: '',
-            translatedSrt: '',
-            hardcodedVideoUrl: '',
-            processStep: 'idle',
-            progress: 0
-        };
+    <!-- Upload -->
+    <div class="card">
+        <h2>Upload Media</h2>
+        <input type="file" id="fileInput" accept="video/*,audio/*" style="display:none">
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+            Select Video/Audio File
+        </button>
+        <div id="fileInfo" style="font-size: 0.8rem; margin-top: 0.5rem; text-align: center;"></div>
+        <video id="videoPreview" controls style="display:none"></video>
+    </div>
 
-        // FFmpeg Initialization
-        let ffmpeg = null;
-        const { FFmpeg } = FFmpegWASM;
-        const { fetchFile, toBlobURL } = FFmpegUtil;
+    <!-- Processing -->
+    <div class="card">
+        <h2>Processing</h2>
+        <button class="btn btn-primary" id="btnTranscribe" onclick="doTranscribe()">Transcribe</button>
+        <button class="btn btn-primary" id="btnTranslate" onclick="doTranslate()">Translate to Burmese</button>
+        <button class="btn btn-primary" id="btnHardcode" onclick="doHardcode()">Hardcode Video</button>
+        
+        <div id="progressArea" style="display:none; margin-top: 1rem;">
+            <div id="progressText" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Processing...</div>
+            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+        </div>
+    </div>
 
-        async function initFFmpeg() {
-            if (ffmpeg) return ffmpeg;
-            
-            ffmpeg = new FFmpeg();
-            ffmpeg.on('log', ({ message }) => {
-                console.log(message);
-            });
-            ffmpeg.on('progress', ({ progress }) => {
-                showStatus(`Processing video... ${Math.round(progress * 100)}%`, 'info', progress * 100);
-            });
+    <!-- Subtitles -->
+    <div id="subEditorCard" class="card" style="display:none">
+        <h2>Subtitle Editor</h2>
+        <div id="subList"></div>
+    </div>
 
-            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-            await ffmpeg.load({
-                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-            });
-            return ffmpeg;
+    <!-- Downloads -->
+    <div id="downloadCard" class="card" style="display:none">
+        <h2>Downloads</h2>
+        <button class="btn btn-secondary" onclick="downloadSRT('original')">Original SRT</button>
+        <button class="btn btn-secondary" onclick="downloadSRT('translated')">Burmese SRT</button>
+        <button class="btn btn-secondary" id="btnDlVideo" style="display:none" onclick="downloadVideo()">Download Video</button>
+    </div>
+</main>
+
+<script>
+    let state = {
+        groqKey: '', geminiKey: '', model: 'gemini-1.5-flash',
+        file: null, subs: [], originalSrt: '', translatedSrt: '',
+        videoUrl: '', hardcodedUrl: ''
+    };
+
+    // Load saved keys
+    window.onload = () => {
+        state.groqKey = localStorage.getItem('groqKey') || '';
+        state.geminiKey = localStorage.getItem('geminiKey') || '';
+        state.model = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
+        document.getElementById('groqKey').value = state.groqKey;
+        document.getElementById('geminiKey').value = state.geminiKey;
+        document.getElementById('geminiModel').value = state.model;
+    };
+
+    function saveKeys() {
+        state.groqKey = document.getElementById('groqKey').value;
+        state.geminiKey = document.getElementById('geminiKey').value;
+        state.model = document.getElementById('geminiModel').value;
+        localStorage.setItem('groqKey', state.groqKey);
+        localStorage.setItem('geminiKey', state.geminiKey);
+        localStorage.setItem('geminiModel', state.model);
+        showMsg('Settings saved!', 'success');
+    }
+
+    function showMsg(txt, type) {
+        const area = document.getElementById('statusArea');
+        area.innerHTML = `<div class="status-msg status-${type}">${txt}</div>`;
+        setTimeout(() => area.innerHTML = '', 5000);
+    }
+
+    function updateProgress(txt, percent) {
+        document.getElementById('progressArea').style.display = 'block';
+        document.getElementById('progressText').innerText = txt;
+        document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    document.getElementById('fileInput').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        state.file = file;
+        document.getElementById('fileInfo').innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+        
+        if (file.type.startsWith('video/')) {
+            state.videoUrl = URL.createObjectURL(file);
+            const v = document.getElementById('videoPreview');
+            v.src = state.videoUrl;
+            v.style.display = 'block';
         }
+    };
 
-        // File Input Handler
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (file && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
-                state.selectedFile = file;
-                if (state.videoPreviewUrl) URL.revokeObjectURL(state.videoPreviewUrl);
-                state.videoPreviewUrl = URL.createObjectURL(file);
+    async function doTranscribe() {
+        if (!state.file || !state.groqKey) return showMsg('Select file and enter Groq Key', 'error');
+        
+        const btn = document.getElementById('btnTranscribe');
+        btn.disabled = true;
+        updateProgress('Transcribing with Groq...', 20);
+
+        try {
+            const fd = new FormData();
+            fd.append('file', state.file);
+            fd.append('model', 'whisper-large-v3');
+            fd.append('response_format', 'verbose_json');
+
+            const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${state.groqKey}` },
+                body: fd
+            });
+
+            if (!res.ok) throw new Error('Transcription failed');
+            const data = await res.json();
+            
+            state.subs = (data.segments || []).map((s, i) => ({
+                id: i + 1,
+                start: s.start,
+                end: s.end,
+                text: s.text.trim(),
+                mm: ''
+            }));
+
+            renderSubs();
+            document.getElementById('subEditorCard').style.display = 'block';
+            document.getElementById('downloadCard').style.display = 'block';
+            updateProgress('Transcription complete!', 100);
+            showMsg('Transcribed successfully', 'success');
+        } catch (err) {
+            showMsg(err.message, 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function doTranslate() {
+        if (state.subs.length === 0 || !state.geminiKey) return showMsg('Transcribe first and enter Gemini Key', 'error');
+        
+        const btn = document.getElementById('btnTranslate');
+        btn.disabled = true;
+        
+        try {
+            for (let i = 0; i < state.subs.length; i++) {
+                updateProgress(`Translating... (${i+1}/${state.subs.length})`, ((i+1)/state.subs.length)*100);
+                const sub = state.subs[i];
+                const prompt = `Translate to Burmese (Myanmar). Natural & short: "${sub.text}"`;
                 
-                // Show file info
-                const fileInfo = document.getElementById('fileInfo');
-                fileInfo.innerHTML = `
-                    <div class="file-info">
-                        <p class="filename">${file.name}</p>
-                        <p class="filesize">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                `;
-
-                // Show video preview
-                const videoPreviewCard = document.getElementById('videoPreviewCard');
-                videoPreviewCard.style.display = 'block';
-                document.getElementById('videoPreview').src = state.videoPreviewUrl;
-
-                showStatus('File selected successfully', 'success');
-            }
-        });
-
-        // Load API Keys from Local Storage
-        window.addEventListener('DOMContentLoaded', () => {
-            state.groqApiKey = localStorage.getItem('groqApiKey') || '';
-            state.geminiApiKey = localStorage.getItem('geminiApiKey') || '';
-            state.geminiModel = localStorage.getItem('geminiModel') || 'gemini-1.5-flash';
-            
-            document.getElementById('groqApiKey').value = state.groqApiKey;
-            document.getElementById('geminiApiKey').value = state.geminiApiKey;
-            document.getElementById('geminiModel').value = state.geminiModel;
-        });
-
-        // API Key Handlers
-        document.getElementById('groqApiKey').addEventListener('input', (e) => state.groqApiKey = e.target.value);
-        document.getElementById('geminiApiKey').addEventListener('input', (e) => state.geminiApiKey = e.target.value);
-        document.getElementById('geminiModel').addEventListener('change', (e) => state.geminiModel = e.target.value);
-
-        function saveApiKeys() {
-            if (!state.groqApiKey || !state.geminiApiKey) {
-                showStatus('Please enter both API keys', 'error');
-                return;
-            }
-            localStorage.setItem('groqApiKey', state.groqApiKey);
-            localStorage.setItem('geminiApiKey', state.geminiApiKey);
-            localStorage.setItem('geminiModel', state.geminiModel);
-            showStatus('Settings saved successfully!', 'success');
-        }
-
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            input.type = input.type === 'password' ? 'text' : 'password';
-        }
-
-        function showStatus(message, type = 'info', progress = null) {
-            const statusDiv = document.getElementById('statusMessage');
-            let icon = type === 'success' ? '✓' : (type === 'error' ? '✕' : 'ⓘ');
-
-            statusDiv.innerHTML = `
-                <div class="status-message ${type} fade-in">
-                    <span class="status-icon">${icon}</span>
-                    <div style="flex: 1;">
-                        <p>${message}</p>
-                        ${progress !== null ? `
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${progress}%"></div>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Transcribe Handler
-        async function handleTranscribe() {
-            if (!state.selectedFile) return showStatus('Please select a file first', 'error');
-            if (!state.groqApiKey) return showStatus('Please enter your Groq API key', 'error');
-
-            const btn = document.getElementById('transcribeBtn');
-            btn.disabled = true;
-            try {
-                showStatus('Transcribing audio with Groq Whisper...', 'info', 0);
-                const formData = new FormData();
-                formData.append('file', state.selectedFile);
-                formData.append('model', 'whisper-large-v3');
-                formData.append('response_format', 'verbose_json');
-
-                const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent?key=${state.geminiKey}`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${state.groqApiKey}` },
-                    body: formData,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
-                if (!response.ok) throw new Error(`Groq API error: ${response.statusText}`);
-                const data = await response.json();
-                
-                state.subtitles = (data.segments || []).map((s, i) => ({
-                    id: i + 1,
-                    startTime: secondsToTimestamp(s.start),
-                    endTime: secondsToTimestamp(s.end),
-                    originalText: s.text.trim(),
-                    translatedText: ''
-                }));
-
-                state.originalSrt = generateSRT(state.subtitles, false);
-                document.getElementById('subtitleEditorCard').style.display = 'block';
-                document.getElementById('downloadSection').style.display = 'block';
-                document.getElementById('downloadOriginalBtn').style.display = 'block';
-                renderSubtitles();
-                showStatus('Transcription complete!', 'success', 100);
-            } catch (error) {
-                console.error(error);
-                showStatus('Transcription failed. Check API key and file.', 'error');
-            } finally {
-                btn.disabled = false;
+                const data = await res.json();
+                sub.mm = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+                renderSubs();
+                await new Promise(r => setTimeout(r, 600)); // Rate limit
             }
+            showMsg('Translation complete!', 'success');
+        } catch (err) {
+            showMsg('Translation error', 'error');
+        } finally {
+            btn.disabled = false;
         }
+    }
 
-        // Translate Handler
-        async function handleTranslate() {
-            if (state.subtitles.length === 0) return showStatus('Please transcribe first', 'error');
-            if (!state.geminiApiKey) return showStatus('Please enter your Gemini API key', 'error');
+    let ffmpeg = null;
+    async function doHardcode() {
+        if (!state.file || !state.subs.some(s => s.mm)) return showMsg('Need video and translations', 'error');
+        
+        const btn = document.getElementById('btnHardcode');
+        btn.disabled = true;
+        updateProgress('Initializing FFmpeg...', 10);
 
-            const btn = document.getElementById('translateBtn');
-            btn.disabled = true;
-            try {
-                showStatus('Translating to Burmese...', 'info', 0);
-                for (let i = 0; i < state.subtitles.length; i++) {
-                    const sub = state.subtitles[i];
-                    const prompt = `Translate this English text to Burmese (Myanmar). Natural & concise: "${sub.originalText}"`;
-                    
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${state.geminiModel}:generateContent?key=${state.geminiApiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-                    });
-
-                    if (!response.ok) throw new Error('Gemini API error');
-                    const data = await response.json();
-                    sub.translatedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-                    
-                    showStatus(`Translating... (${i+1}/${state.subtitles.length})`, 'info', ((i+1)/state.subtitles.length)*100);
-                    await new Promise(r => setTimeout(r, 500)); // Rate limit protection
-                }
-
-                state.translatedSrt = generateSRT(state.subtitles, true);
-                document.getElementById('downloadTranslatedBtn').style.display = 'block';
-                renderSubtitles();
-                showStatus('Translation complete!', 'success', 100);
-            } catch (error) {
-                console.error(error);
-                showStatus('Translation failed.', 'error');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // Hardcode Handler using FFmpeg.wasm
-        async function handleHardcode() {
-            if (!state.selectedFile) return showStatus('Select a video first', 'error');
-            if (!state.translatedSrt) return showStatus('Translate first', 'error');
-
-            const btn = document.getElementById('hardcodeBtn');
-            btn.disabled = true;
-            try {
-                showStatus('Initializing FFmpeg...', 'info');
-                const ffmpeg = await initFFmpeg();
-                
-                const videoName = 'input_video.mp4';
-                const srtName = 'subtitles.srt';
-                const fontName = 'font.ttf';
-                
-                showStatus('Loading files into FFmpeg...', 'info', 10);
-                await ffmpeg.writeFile(videoName, await fetchFile(state.selectedFile));
-                await ffmpeg.writeFile(srtName, state.translatedSrt);
-                
-                // Optional: Load a Burmese font if available, otherwise fallback to system font
-                // For web demo, we rely on FFmpeg's internal font rendering if possible
-                
-                showStatus('Starting hardcoding process (this may take a while)...', 'info', 20);
-                
-                // Simplified command for hardcoding subtitles
-                // Note: 'subtitles' filter requires a font. For WASM, it's tricky.
-                // We use a basic drawtext or assume internal font support.
-                await ffmpeg.exec([
-                    '-i', videoName,
-                    '-vf', `subtitles=${srtName}`,
-                    '-c:a', 'copy',
-                    'output.mp4'
-                ]);
-
-                const data = await ffmpeg.readFile('output.mp4');
-                if (state.hardcodedVideoUrl) URL.revokeObjectURL(state.hardcodedVideoUrl);
-                state.hardcodedVideoUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-
-                document.getElementById('downloadVideoBtn').style.display = 'block';
-                showStatus('Hardcoding complete!', 'success', 100);
-            } catch (error) {
-                console.error(error);
-                showStatus('Hardcoding failed. This feature requires high resources.', 'error');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function downloadFile(type) {
-            const content = type === 'original' ? state.originalSrt : (type === 'translated' ? state.translatedSrt : null);
-            const name = type === 'original' ? 'original.srt' : (type === 'translated' ? 'burmese.srt' : 'video_with_subs.mp4');
+        try {
+            const { FFmpeg } = FFmpegWASM;
+            const { fetchFile, toBlobURL } = FFmpegUtil;
             
-            if (type === 'video') {
-                const a = document.createElement('a');
-                a.href = state.hardcodedVideoUrl;
-                a.download = name;
-                a.click();
-            } else {
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = name;
-                a.click();
-                URL.revokeObjectURL(url);
+            if (!ffmpeg) {
+                ffmpeg = new FFmpeg();
+                const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+                await ffmpeg.load({
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                });
             }
-        }
 
-        function secondsToTimestamp(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.floor((seconds % 1) * 1000);
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
-        }
+            const srt = state.subs.map(s => `${s.id}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${s.mm || s.text}\n`).join('\n');
+            await ffmpeg.writeFile('sub.srt', srt);
+            await ffmpeg.writeFile('input.mp4', await fetchFile(state.file));
 
-        function generateSRT(subs, translated) {
-            return subs.map(s => `${s.id}\n${s.startTime} --> ${s.endTime}\n${translated ? s.translatedText : s.originalText}\n`).join('\n');
-        }
+            updateProgress('Encoding video (Slow)...', 50);
+            await ffmpeg.exec(['-i', 'input.mp4', '-vf', 'subtitles=sub.srt', '-c:a', 'copy', 'output.mp4']);
 
-        function renderSubtitles() {
-            const list = document.getElementById('subtitleList');
-            list.innerHTML = state.subtitles.map(sub => `
-                <div class="subtitle-item">
-                    <div class="subtitle-time">
-                        <span>${sub.startTime} → ${sub.endTime}</span>
-                        <span class="subtitle-id">#${sub.id}</span>
-                    </div>
-                    <div class="subtitle-grid">
-                        <div class="subtitle-column">
-                            <h4>Original</h4>
-                            <div class="subtitle-text">${sub.originalText}</div>
-                        </div>
-                        <div class="subtitle-column">
-                            <h4>Burmese</h4>
-                            <div class="subtitle-text" onclick="editSubtitle(${sub.id})">
-                                ${sub.translatedText || '(Click to edit)'}
-                            </div>
-                        </div>
-                    </div>
+            const data = await ffmpeg.readFile('output.mp4');
+            state.hardcodedUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            
+            document.getElementById('btnDlVideo').style.display = 'block';
+            updateProgress('Hardcoding complete!', 100);
+            showMsg('Video ready!', 'success');
+        } catch (err) {
+            console.error(err);
+            showMsg('Hardcoding failed. Browser resources might be low.', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function formatTime(s) {
+        const date = new Date(0);
+        date.setSeconds(s);
+        const ms = Math.floor((s % 1) * 1000);
+        return date.toISOString().substr(11, 8) + ',' + String(ms).padStart(3, '0');
+    }
+
+    function renderSubs() {
+        const list = document.getElementById('subList');
+        list.innerHTML = state.subs.map(s => `
+            <div class="subtitle-item">
+                <div class="sub-time">${formatTime(s.start)} - ${formatTime(s.end)}</div>
+                <div class="sub-text-grid">
+                    <div class="sub-original">${s.text}</div>
+                    <div class="sub-translated" onclick="editSub(${s.id})">${s.mm || '(Click to translate)'}</div>
                 </div>
-            `).join('');
-        }
+            </div>
+        `).join('');
+    }
 
-        function editSubtitle(id) {
-            const sub = state.subtitles.find(s => s.id === id);
-            const newText = prompt('Edit translation:', sub.translatedText);
-            if (newText !== null) {
-                sub.translatedText = newText;
-                state.translatedSrt = generateSRT(state.subtitles, true);
-                renderSubtitles();
-            }
-        }
-    </script>
+    function editSub(id) {
+        const s = state.subs.find(x => x.id === id);
+        const val = prompt('Edit Burmese:', s.mm);
+        if (val !== null) { s.mm = val; renderSubs(); }
+    }
+
+    function downloadSRT(type) {
+        const srt = state.subs.map(s => `${s.id}\n${formatTime(s.start)} --> ${formatTime(s.end)}\n${type === 'mm' ? s.mm : s.text}\n`).join('\n');
+        const blob = new Blob([srt], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = type === 'mm' ? 'burmese.srt' : 'original.srt';
+        a.click();
+    }
+
+    function downloadVideo() {
+        const a = document.createElement('a');
+        a.href = state.hardcodedUrl;
+        a.download = 'hardcoded_video.mp4';
+        a.click();
+    }
+</script>
+
 </body>
 </html>
