@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Subtitle Master Pro</title>
-    <!-- Latest working FFmpeg libraries -->
+    <title>AI Subtitle Master Pro (မြန်မာမူ)</title>
+    <!-- နောက်ဆုံးထွက် FFmpeg libraries များ -->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
     <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/index.js"></script>
     <style>
@@ -26,8 +26,8 @@
         body {
             background-color: var(--background);
             color: var(--foreground);
-            font-family: 'Inter', sans-serif;
-            line-height: 1.5;
+            font-family: 'Inter', 'Pyidaungsu', sans-serif;
+            line-height: 1.6;
             padding-bottom: 2rem;
         }
 
@@ -66,7 +66,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent); }
+        h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent); border-bottom: 1px solid #30363d; padding-bottom: 0.5rem; }
 
         .form-group { margin-bottom: 1rem; }
         label { display: block; font-size: 0.85rem; margin-bottom: 0.5rem; opacity: 0.8; }
@@ -144,70 +144,74 @@
 
 <header>
     <div class="header-title">AI Subtitle Master Pro</div>
-    <p style="font-size: 0.8rem; opacity: 0.6;">Automatic Transcription & Translation</p>
+    <p style="font-size: 0.8rem; opacity: 0.6;">အလိုအလျောက် အသံဖမ်းယူခြင်းနှင့် မြန်မာဘာသာပြန်ဆိုခြင်း</p>
 </header>
 
 <main>
     <div id="statusArea"></div>
 
-    <!-- Config -->
+    <!-- ပြင်ဆင်သတ်မှတ်ချက်များ -->
     <div class="card">
-        <h2>Configuration</h2>
+        <h2>ပြင်ဆင်သတ်မှတ်ချက်များ</h2>
         <div class="form-group">
-            <label>Groq API Key (Whisper)</label>
+            <label>Groq API Key (အသံဖမ်းယူရန်)</label>
             <input type="password" id="groqKey" placeholder="gsk_...">
         </div>
         <div class="form-group">
-            <label>Gemini API Key (Translation)</label>
+            <label>Gemini API Key (ဘာသာပြန်ရန်)</label>
             <input type="password" id="geminiKey" placeholder="AIza...">
         </div>
         <div class="form-group">
-            <label>Gemini Model</label>
+            <label>Gemini Model (ဘာသာပြန်မော်ဒယ်)</label>
             <select id="geminiModel">
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
-                <option value="gemini-pro">Gemini Pro</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash (အမြန်ဆုံး)</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash (အကြံပြုထားသည်)</option>
+                <option value="gemini-pro">Gemini Pro (ပိုမိုကောင်းမွန်သည်)</option>
             </select>
         </div>
-        <button class="btn btn-secondary" onclick="saveKeys()">Save Settings</button>
+        <button class="btn btn-secondary" onclick="saveKeys()">သိမ်းဆည်းမည်</button>
+        <p style="font-size: 0.7rem; color: #8b949e; margin-top: 0.5rem;">
+            API key များကို <a href="https://console.groq.com" target="_blank" style="color:var(--accent)">Groq</a> နှင့် <a href="https://ai.google.dev" target="_blank" style="color:var(--accent)">Google AI Studio</a> တို့တွင် ရယူနိုင်ပါသည်။
+        </p>
     </div>
 
-    <!-- Upload -->
+    <!-- ဗီဒီယို/အသံဖိုင် တင်ရန် -->
     <div class="card">
-        <h2>Upload Media</h2>
+        <h2>ဗီဒီယို/အသံဖိုင် တင်ရန်</h2>
         <input type="file" id="fileInput" accept="video/*,audio/*" style="display:none">
         <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
-            Select Video/Audio File
+            ဖိုင်ရွေးချယ်မည်
         </button>
         <div id="fileInfo" style="font-size: 0.8rem; margin-top: 0.5rem; text-align: center;"></div>
         <video id="videoPreview" controls style="display:none"></video>
     </div>
 
-    <!-- Processing -->
+    <!-- လုပ်ဆောင်ချက်များ -->
     <div class="card">
-        <h2>Processing</h2>
-        <button class="btn btn-primary" id="btnTranscribe" onclick="doTranscribe()">Transcribe</button>
-        <button class="btn btn-primary" id="btnTranslate" onclick="doTranslate()">Translate to Burmese</button>
-        <button class="btn btn-primary" id="btnHardcode" onclick="doHardcode()">Hardcode Video</button>
+        <h2>လုပ်ဆောင်ချက်များ</h2>
+        <button class="btn btn-primary" id="btnTranscribe" onclick="doTranscribe()">အသံဖမ်းယူမည် (Transcribe)</button>
+        <button class="btn btn-primary" id="btnTranslate" onclick="doTranslate()">မြန်မာလို ဘာသာပြန်မည်</button>
+        <button class="btn btn-primary" id="btnHardcode" onclick="doHardcode()">ဗီဒီယိုထဲသို့ စာတန်းထည့်မည်</button>
         
         <div id="progressArea" style="display:none; margin-top: 1rem;">
-            <div id="progressText" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Processing...</div>
+            <div id="progressText" style="font-size: 0.85rem; margin-bottom: 0.3rem;">လုပ်ဆောင်နေပါသည်...</div>
             <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
         </div>
     </div>
 
-    <!-- Subtitles -->
+    <!-- စာတန်း တည်းဖြတ်ရန် -->
     <div id="subEditorCard" class="card" style="display:none">
-        <h2>Subtitle Editor</h2>
+        <h2>စာတန်း တည်းဖြတ်ရန်</h2>
+        <p style="font-size: 0.8rem; color: #8b949e; margin-bottom: 1rem;">မြန်မာစာတန်းကို နှိပ်၍ တိုက်ရိုက်ပြင်ဆင်နိုင်ပါသည်။</p>
         <div id="subList"></div>
     </div>
 
-    <!-- Downloads -->
+    <!-- ဒေါင်းလုဒ် ရယူရန် -->
     <div id="downloadCard" class="card" style="display:none">
-        <h2>Downloads</h2>
-        <button class="btn btn-secondary" onclick="downloadSRT('original')">Original SRT</button>
-        <button class="btn btn-secondary" onclick="downloadSRT('translated')">Burmese SRT</button>
-        <button class="btn btn-secondary" id="btnDlVideo" style="display:none" onclick="downloadVideo()">Download Video</button>
+        <h2>ဒေါင်းလုဒ် ရယူရန်</h2>
+        <button class="btn btn-secondary" onclick="downloadSRT('original')">မူရင်း SRT (English)</button>
+        <button class="btn btn-secondary" onclick="downloadSRT('mm')">မြန်မာ SRT</button>
+        <button class="btn btn-secondary" id="btnDlVideo" style="display:none" onclick="downloadVideo()">ဗီဒီယိုကို ဒေါင်းလုဒ်လုပ်မည်</button>
     </div>
 </main>
 
@@ -218,7 +222,7 @@
         videoUrl: '', hardcodedUrl: ''
     };
 
-    // Load saved keys
+    // သိမ်းဆည်းထားသော key များကို ပြန်ခေါ်ယူခြင်း
     window.onload = () => {
         state.groqKey = localStorage.getItem('groqKey') || '';
         state.geminiKey = localStorage.getItem('geminiKey') || '';
@@ -235,7 +239,7 @@
         localStorage.setItem('groqKey', state.groqKey);
         localStorage.setItem('geminiKey', state.geminiKey);
         localStorage.setItem('geminiModel', state.model);
-        showMsg('Settings saved!', 'success');
+        showMsg('သတ်မှတ်ချက်များကို သိမ်းဆည်းပြီးပါပြီ!', 'success');
     }
 
     function showMsg(txt, type) {
@@ -257,19 +261,21 @@
         document.getElementById('fileInfo').innerText = `${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
         
         if (file.type.startsWith('video/')) {
+            if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
             state.videoUrl = URL.createObjectURL(file);
             const v = document.getElementById('videoPreview');
             v.src = state.videoUrl;
             v.style.display = 'block';
         }
+        showMsg('ဖိုင်ကို ရွေးချယ်ပြီးပါပြီ။', 'success');
     };
 
     async function doTranscribe() {
-        if (!state.file || !state.groqKey) return showMsg('Select file and enter Groq Key', 'error');
+        if (!state.file || !state.groqKey) return showMsg('ဖိုင်ရွေးရန်နှင့် Groq Key ထည့်ရန် လိုအပ်ပါသည်။', 'error');
         
         const btn = document.getElementById('btnTranscribe');
         btn.disabled = true;
-        updateProgress('Transcribing with Groq...', 20);
+        updateProgress('Groq Whisper ဖြင့် အသံဖမ်းယူနေပါသည်...', 20);
 
         try {
             const fd = new FormData();
@@ -283,7 +289,7 @@
                 body: fd
             });
 
-            if (!res.ok) throw new Error('Transcription failed');
+            if (!res.ok) throw new Error('အသံဖမ်းယူမှု မအောင်မြင်ပါ။');
             const data = await res.json();
             
             state.subs = (data.segments || []).map((s, i) => ({
@@ -297,8 +303,8 @@
             renderSubs();
             document.getElementById('subEditorCard').style.display = 'block';
             document.getElementById('downloadCard').style.display = 'block';
-            updateProgress('Transcription complete!', 100);
-            showMsg('Transcribed successfully', 'success');
+            updateProgress('အသံဖမ်းယူမှု ပြီးဆုံးပါပြီ!', 100);
+            showMsg('အောင်မြင်စွာ လုပ်ဆောင်ပြီးပါပြီ။', 'success');
         } catch (err) {
             showMsg(err.message, 'error');
         } finally {
@@ -307,16 +313,16 @@
     }
 
     async function doTranslate() {
-        if (state.subs.length === 0 || !state.geminiKey) return showMsg('Transcribe first and enter Gemini Key', 'error');
+        if (state.subs.length === 0 || !state.geminiKey) return showMsg('အရင်ဆုံး အသံဖမ်းယူပါ သို့မဟုတ် Gemini Key ထည့်ပါ။', 'error');
         
         const btn = document.getElementById('btnTranslate');
         btn.disabled = true;
         
         try {
             for (let i = 0; i < state.subs.length; i++) {
-                updateProgress(`Translating... (${i+1}/${state.subs.length})`, ((i+1)/state.subs.length)*100);
+                updateProgress(`မြန်မာလို ဘာသာပြန်နေပါသည်... (${i+1}/${state.subs.length})`, ((i+1)/state.subs.length)*100);
                 const sub = state.subs[i];
-                const prompt = `Translate to Burmese (Myanmar). Natural & short: "${sub.text}"`;
+                const prompt = `Translate this English text to Burmese (Myanmar). Natural, conversational and concise: "${sub.text}"`;
                 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent?key=${state.geminiKey}`, {
                     method: 'POST',
@@ -324,14 +330,16 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
+                if (!res.ok) throw new Error('Gemini API Error');
                 const data = await res.json();
                 sub.mm = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
                 renderSubs();
-                await new Promise(r => setTimeout(r, 600)); // Rate limit
+                await new Promise(r => setTimeout(r, 600)); // Rate limit ကာကွယ်ရန်
             }
-            showMsg('Translation complete!', 'success');
+            updateProgress('ဘာသာပြန်ဆိုမှု ပြီးဆုံးပါပြီ!', 100);
+            showMsg('ဘာသာပြန်ဆိုမှု အောင်မြင်ပါသည်။', 'success');
         } catch (err) {
-            showMsg('Translation error', 'error');
+            showMsg('ဘာသာပြန်ဆိုမှုတွင် အမှားရှိနေပါသည်။', 'error');
         } finally {
             btn.disabled = false;
         }
@@ -339,11 +347,11 @@
 
     let ffmpeg = null;
     async function doHardcode() {
-        if (!state.file || !state.subs.some(s => s.mm)) return showMsg('Need video and translations', 'error');
+        if (!state.file || !state.subs.some(s => s.mm)) return showMsg('ဗီဒီယိုဖိုင်နှင့် ဘာသာပြန်ထားသော စာသားများ လိုအပ်ပါသည်။', 'error');
         
         const btn = document.getElementById('btnHardcode');
         btn.disabled = true;
-        updateProgress('Initializing FFmpeg...', 10);
+        updateProgress('FFmpeg ကို ပြင်ဆင်နေပါသည်...', 10);
 
         try {
             const { FFmpeg } = FFmpegWASM;
@@ -362,18 +370,19 @@
             await ffmpeg.writeFile('sub.srt', srt);
             await ffmpeg.writeFile('input.mp4', await fetchFile(state.file));
 
-            updateProgress('Encoding video (Slow)...', 50);
+            updateProgress('ဗီဒီယိုထဲသို့ စာတန်းထည့်နေပါသည် (အချိန်ကြာနိုင်ပါသည်)...', 50);
             await ffmpeg.exec(['-i', 'input.mp4', '-vf', 'subtitles=sub.srt', '-c:a', 'copy', 'output.mp4']);
 
             const data = await ffmpeg.readFile('output.mp4');
+            if (state.hardcodedUrl) URL.revokeObjectURL(state.hardcodedUrl);
             state.hardcodedUrl = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             
             document.getElementById('btnDlVideo').style.display = 'block';
-            updateProgress('Hardcoding complete!', 100);
-            showMsg('Video ready!', 'success');
+            updateProgress('အားလုံး ပြီးဆုံးပါပြီ!', 100);
+            showMsg('ဗီဒီယို အဆင်သင့်ဖြစ်ပါပြီ။', 'success');
         } catch (err) {
             console.error(err);
-            showMsg('Hardcoding failed. Browser resources might be low.', 'error');
+            showMsg('ဗီဒီယို ထုတ်ယူမှု မအောင်မြင်ပါ။ Browser resource မလုံလောက်ခြင်း ဖြစ်နိုင်ပါသည်။', 'error');
         } finally {
             btn.disabled = false;
         }
@@ -393,7 +402,7 @@
                 <div class="sub-time">${formatTime(s.start)} - ${formatTime(s.end)}</div>
                 <div class="sub-text-grid">
                     <div class="sub-original">${s.text}</div>
-                    <div class="sub-translated" onclick="editSub(${s.id})">${s.mm || '(Click to translate)'}</div>
+                    <div class="sub-translated" onclick="editSub(${s.id})">${s.mm || '(ဘာသာပြန်ရန် နှိပ်ပါ)'}</div>
                 </div>
             </div>
         `).join('');
@@ -401,7 +410,7 @@
 
     function editSub(id) {
         const s = state.subs.find(x => x.id === id);
-        const val = prompt('Edit Burmese:', s.mm);
+        const val = prompt('မြန်မာဘာသာပြန်ကို ပြင်ဆင်ရန်:', s.mm);
         if (val !== null) { s.mm = val; renderSubs(); }
     }
 
@@ -413,12 +422,14 @@
         a.href = url;
         a.download = type === 'mm' ? 'burmese.srt' : 'original.srt';
         a.click();
+        URL.revokeObjectURL(url);
     }
 
     function downloadVideo() {
+        if (!state.hardcodedUrl) return;
         const a = document.createElement('a');
         a.href = state.hardcodedUrl;
-        a.download = 'hardcoded_video.mp4';
+        a.download = 'hardcoded_video_mm.mp4';
         a.click();
     }
 </script>
