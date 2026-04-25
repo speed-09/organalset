@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="my">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,10 +21,12 @@ body{
 
 .card{
   background:#161b22;
-  padding:20px;
+  padding:18px;
   border-radius:12px;
-  margin-bottom:20px;
+  margin-bottom:16px;
 }
+
+h1{ margin-bottom:10px; }
 
 input, textarea, select, button{
   width:100%;
@@ -38,6 +40,7 @@ input, textarea, select, button{
 input, textarea, select{
   background:#0d1117;
   color:#fff;
+  outline:none;
 }
 
 button{
@@ -48,16 +51,18 @@ button{
 }
 
 button:hover{
-  opacity:0.8;
-}
-
-audio{
-  margin-top:10px;
-  width:100%;
+  opacity:0.85;
 }
 
 .output{
   white-space:pre-wrap;
+  margin-top:10px;
+  background:#0d1117;
+  padding:10px;
+  border-radius:8px;
+}
+audio{
+  width:100%;
   margin-top:10px;
 }
 </style>
@@ -69,7 +74,7 @@ audio{
 
 <h1>🔥 SubtitleAI PRO</h1>
 
-<!-- API -->
+<!-- SETTINGS -->
 <div class="card">
 <h3>🔑 API Settings</h3>
 
@@ -81,7 +86,7 @@ audio{
 
 <!-- TRANSCRIBE -->
 <div class="card">
-<h3>🎤 Audio → Text</h3>
+<h3>🎤 Audio → Text (Whisper)</h3>
 
 <input type="file" id="audioFile">
 <button onclick="transcribe()">Transcribe</button>
@@ -91,18 +96,18 @@ audio{
 
 <!-- TRANSLATE -->
 <div class="card">
-<h3>🌍 Translate to Myanmar</h3>
+<h3>🌍 Translate (Gemini AI)</h3>
 
-<textarea id="textInput" placeholder="English text..."></textarea>
+<textarea id="textInput" placeholder="Enter English text..."></textarea>
 
-<button onclick="translateText()">Translate</button>
+<button onclick="translateText()">Translate to Myanmar</button>
 
 <div id="translateOut" class="output"></div>
 </div>
 
 <!-- VOICE -->
 <div class="card">
-<h3>🎙️ AI Voice Generator</h3>
+<h3>🎙️ AI Voice (Browser)</h3>
 
 <textarea id="voiceText" placeholder="Enter text"></textarea>
 
@@ -123,20 +128,20 @@ audio{
 
 <script>
 
-/* ---------------- SAVE KEYS ---------------- */
+/* ================= SAVE KEYS ================= */
 function saveKeys(){
   localStorage.setItem("groqKey", groqKey.value);
   localStorage.setItem("geminiKey", geminiKey.value);
-  alert("Saved!");
+  alert("Keys Saved ✔");
 }
 
-/* ---------------- TRANSCRIBE ---------------- */
+/* ================= TRANSCRIBE (Groq Whisper) ================= */
 async function transcribe(){
   const file = audioFile.files[0];
   const key = localStorage.getItem("groqKey");
 
   if(!file || !key){
-    alert("Missing file or key");
+    alert("Missing file or API key");
     return;
   }
 
@@ -150,46 +155,75 @@ async function transcribe(){
     const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
       method:"POST",
       headers:{
-        "Authorization":"Bearer "+key
+        "Authorization":"Bearer " + key
       },
       body:form
     });
 
     const data = await res.json();
-    transcribeOut.innerText = data.text || "Error";
+    transcribeOut.innerText = data.text || "Error ❌";
+
   }catch(e){
-    transcribeOut.innerText = "Error";
+    transcribeOut.innerText = "API Error ❌";
   }
 }
 
-/* ---------------- TRANSLATE ---------------- */
+/* ================= TRANSLATE (Gemini 1.5 Flash Ultra) ================= */
 async function translateText(){
   const text = textInput.value;
   const key = localStorage.getItem("geminiKey");
 
-  translateOut.innerText = "Translating...";
+  if(!text || !key){
+    translateOut.innerText = "Missing input or API key";
+    return;
+  }
+
+  translateOut.innerText = "⚡ Translating...";
 
   try{
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${key}`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        contents:[{
-          parts:[{text:"Translate to Myanmar:\n"+text}]
-        }]
-      })
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          contents:[
+            {
+              parts:[
+                {
+                  text:
+`Translate this to natural Myanmar subtitle style.
+Keep sentences short and simple.
+
+TEXT:
+${text}`
+                }
+              ]
+            }
+          ],
+          generationConfig:{
+            temperature:0.2,
+            topP:0.8,
+            maxOutputTokens:1024
+          }
+        })
+      }
+    );
 
     const data = await res.json();
-    const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    translateOut.innerText = result || "Error";
+    const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    translateOut.innerText = result || "No response ❌";
+
   }catch(e){
-    translateOut.innerText = "Error";
+    translateOut.innerText = "API Error ❌";
   }
 }
 
-/* ---------------- VOICE ---------------- */
+/* ================= VOICE (Browser TTS) ================= */
 function generateVoice(){
   const text = voiceText.value;
   const style = voiceStyle.value;
@@ -201,7 +235,6 @@ function generateVoice(){
 
   const speech = new SpeechSynthesisUtterance(text);
 
-  // emotion control
   if(style === "happy") speech.rate = 1.3;
   if(style === "sad") speech.rate = 0.8;
   if(style === "excited") speech.rate = 1.5;
