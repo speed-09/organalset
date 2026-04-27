@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubtitleAI PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:linear-gradient(135deg,#0d1117,#020617);
+  color:#fff;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(10px);
+  padding:18px;
+  border-radius:14px;
+  margin-bottom:18px;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+input, textarea, select, button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+}
+
+input, textarea, select{
+  background:#0d1117;
+  color:#fff;
+  outline:none;
+}
+
+button{
+  background:#00f28f;
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:0.85;
+}
+
+.output{
+  white-space:pre-wrap;
+  margin-top:10px;
+  background:#020617;
+  padding:10px;
+  border-radius:8px;
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+}
+
+audio{
+  width:100%;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🔥 SubtitleAI PRO</h1>
+
+<!-- API -->
+<div class="card">
+<h3>🔑 API Settings</h3>
+<input id="groqKey" placeholder="Groq API Key">
+<input id="geminiKey" placeholder="Gemini API Key">
+<button onclick="saveKeys()">Save Keys</button>
+</div>
+
+<!-- TRANSCRIBE -->
+<div class="card">
+<h3>🎤 Audio → Text</h3>
+<input type="file" id="audioFile">
+<button onclick="transcribe()">Transcribe</button>
+<div id="transcribeOut" class="output"></div>
+</div>
+
+<!-- TRANSLATE -->
+<div class="card">
+<h3>🌍 Translate</h3>
+<textarea id="textInput" placeholder="Enter or auto-filled text"></textarea>
+<button onclick="translateText()">Translate → Myanmar</button>
+
+<div class="actions">
+<button onclick="copyText()">Copy</button>
+<button onclick="downloadText()">Download</button>
+</div>
+
+<div id="translateOut" class="output"></div>
+</div>
+
+<!-- VOICE -->
+<div class="card">
+<h3>🎙️ AI Voice</h3>
+<textarea id="voiceText"></textarea>
+
+<select id="voiceStyle">
+<option value="normal">Normal</option>
+<option value="fast">Fast</option>
+<option value="slow">Slow</option>
+</select>
+
+<button onclick="generateVoice()">Generate Voice</button>
+<audio id="audioPlayer" controls></audio>
+</div>
+
+</div>
+
+<script>
+
+/* LOAD SAVED KEYS */
+groqKey.value = localStorage.getItem("groqKey") || "";
+geminiKey.value = localStorage.getItem("geminiKey") || "";
+
+/* SAVE KEYS */
+function saveKeys(){
+  localStorage.setItem("groqKey", groqKey.value.trim());
+  localStorage.setItem("geminiKey", geminiKey.value.trim());
+  alert("Saved ✔");
+}
+
+/* TRANSCRIBE */
+async function transcribe(){
+  const file = audioFile.files[0];
+  const key = localStorage.getItem("groqKey");
+
+  if(!file || !key){
+    alert("Missing file or key");
+    return;
+  }
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("model", "whisper-large-v3");
+
+  transcribeOut.innerText = "⏳ Processing...";
+
+  try{
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
+      method:"POST",
+      headers:{ "Authorization":"Bearer "+key },
+      body:form
+    });
+
+    const data = await res.json();
+
+    if(data.error){
+      transcribeOut.innerText = "❌ "+data.error.message;
+      return;
+    }
+
+    transcribeOut.innerText = data.text;
+    textInput.value = data.text; // AUTO FILL
+
+  }catch(e){
+    transcribeOut.innerText = "❌ Network error";
+  }
+}
+
+/* TRANSLATE */
+async function translateText(){
+  const text = textInput.value;
+  const key = localStorage.getItem("geminiKey");
+
+  if(!text || !key){
+    translateOut.innerText = "Missing input or key";
+    return;
+  }
+
+  translateOut.innerText = "⚡ Translating...";
+
+  try{
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+          contents:[
+            {
+              parts:[
+                {
+                  text:
+`Translate to natural Burmese subtitle style.
+
+Rules:
+- Short sentences
+- No English
+- Clean reading
+
+TEXT:
+${text}`
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await res.json();
+    const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    translateOut.innerText = result || "❌ No response";
+    voiceText.value = result;
+
+  }catch(e){
+    translateOut.innerText = "❌ API error";
+  }
+}
+
+/* COPY */
+function copyText(){
+  navigator.clipboard.writeText(translateOut.innerText);
+  alert("Copied ✔");
+}
+
+/* DOWNLOAD */
+function downloadText(){
+  const blob = new Blob([translateOut.innerText], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "subtitle.txt";
+  a.click();
+}
+
+/* VOICE */
+function generateVoice(){
+  const text = voiceText.value;
+  const style = voiceStyle.value;
+
+  if(!text){
+    alert("Enter text");
+    return;
+  }
+
+  const speech = new SpeechSynthesisUtterance(text);
+
+  speech.lang = "my-MM";
+
+  if(style === "fast") speech.rate = 1.4;
+  if(style === "slow") speech.rate = 0.8;
+
+  speechSynthesis.speak(speech);
+}
+
+</script>
+
+</body>
+</html>
