@@ -1,250 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="my">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SubtitleAI PRO</title>
-
-<style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#0d1117;
-  color:#fff;
-}
-
-.container{
-  max-width:900px;
-  margin:auto;
-  padding:20px;
-}
-
-.card{
-  background:#161b22;
-  padding:18px;
-  border-radius:12px;
-  margin-bottom:16px;
-}
-
-h1{ margin-bottom:10px; }
-
-input, textarea, select, button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
-}
-
-input, textarea, select{
-  background:#0d1117;
-  color:#fff;
-  outline:none;
-}
-
-button{
-  background:#00f28f;
-  color:#000;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:0.85;
-}
-
-.output{
-  white-space:pre-wrap;
-  margin-top:10px;
-  background:#0d1117;
-  padding:10px;
-  border-radius:8px;
-}
-audio{
-  width:100%;
-  margin-top:10px;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>AI Subtitle Studio Pro</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+      padding: 30px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+    button {
+      background: #22c55e;
+      color: white;
+      cursor: pointer;
+    }
+    textarea {
+      width: 90%;
+      height: 200px;
+      margin-top: 15px;
+      border-radius: 10px;
+      padding: 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="container">
+<h1>🎬 AI Subtitle Studio Pro</h1>
 
-<h1>🔥 SubtitleAI PRO</h1>
+<input type="text" id="videoUrl" placeholder="Paste video/audio URL" size="50"/><br>
 
-<!-- SETTINGS -->
-<div class="card">
-<h3>🔑 API Settings</h3>
+<select id="style">
+  <option value="formal">Formal</option>
+  <option value="casual">Casual</option>
+  <option value="tiktok">TikTok Style</option>
+</select><br>
 
-<input type="text" id="groqKey" placeholder="Groq API Key">
-<input type="text" id="geminiKey" placeholder="Gemini API Key">
+<button onclick="startProcess()">🚀 Start Process</button>
 
-<button onclick="saveKeys()">Save Keys</button>
-</div>
+<h3>📄 Output</h3>
+<textarea id="output"></textarea><br>
 
-<!-- TRANSCRIBE -->
-<div class="card">
-<h3>🎤 Audio → Text (Whisper)</h3>
-
-<input type="file" id="audioFile">
-<button onclick="transcribe()">Transcribe</button>
-
-<div id="transcribeOut" class="output"></div>
-</div>
-
-<!-- TRANSLATE -->
-<div class="card">
-<h3>🌍 Translate (Gemini AI)</h3>
-
-<textarea id="textInput" placeholder="Enter English text..."></textarea>
-
-<button onclick="translateText()">Translate to Myanmar</button>
-
-<div id="translateOut" class="output"></div>
-</div>
-
-<!-- VOICE -->
-<div class="card">
-<h3>🎙️ AI Voice (Browser)</h3>
-
-<textarea id="voiceText" placeholder="Enter text"></textarea>
-
-<select id="voiceStyle">
-  <option value="calm">Calm</option>
-  <option value="happy">Happy</option>
-  <option value="sad">Sad</option>
-  <option value="excited">Excited</option>
-  <option value="whisper">Whisper</option>
-</select>
-
-<button onclick="generateVoice()">Generate Voice</button>
-
-<audio id="audioPlayer" controls></audio>
-</div>
-
-</div>
+<button onclick="generateVoice()">🔊 Generate Voice</button>
 
 <script>
+async function startProcess() {
+  const url = document.getElementById("videoUrl").value;
+  const style = document.getElementById("style").value;
 
-/* ================= SAVE KEYS ================= */
-function saveKeys(){
-  localStorage.setItem("groqKey", groqKey.value);
-  localStorage.setItem("geminiKey", geminiKey.value);
-  alert("Keys Saved ✔");
-}
+  document.getElementById("output").value = "⏳ Processing...";
 
-/* ================= TRANSCRIBE (Groq Whisper) ================= */
-async function transcribe(){
-  const file = audioFile.files[0];
-  const key = localStorage.getItem("groqKey");
-
-  if(!file || !key){
-    alert("Missing file or API key");
-    return;
-  }
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("model", "whisper-large-v3");
-
-  transcribeOut.innerText = "Processing...";
-
-  try{
-    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
-      method:"POST",
-      headers:{
-        "Authorization":"Bearer " + key
-      },
-      body:form
+  try {
+    // 1. Speech → Text
+    const t1 = await fetch("http://localhost:3000/api/transcribe", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ audioUrl: url })
     });
+    const d1 = await t1.json();
 
-    const data = await res.json();
-    transcribeOut.innerText = data.text || "Error ❌";
+    // 2. Translate
+    const t2 = await fetch("http://localhost:3000/api/translate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        text: d1.text,
+        style: style
+      })
+    });
+    const d2 = await t2.json();
 
-  }catch(e){
-    transcribeOut.innerText = "API Error ❌";
+    document.getElementById("output").value = d2.result;
+
+  } catch (err) {
+    document.getElementById("output").value = "❌ Error: " + err.message;
   }
 }
 
-/* ================= TRANSLATE (Gemini 1.5 Flash Ultra) ================= */
-async function translateText(){
-  const text = textInput.value;
-  const key = localStorage.getItem("geminiKey");
+async function generateVoice() {
+  const text = document.getElementById("output").value;
 
-  if(!text || !key){
-    translateOut.innerText = "Missing input or API key";
-    return;
-  }
+  const res = await fetch("http://localhost:3000/api/tts", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text })
+  });
 
-  translateOut.innerText = "⚡ Translating...";
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
 
-  try{
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-      {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          contents:[
-            {
-              parts:[
-                {
-                  text:
-`Translate this to natural Myanmar subtitle style.
-Keep sentences short and simple.
-
-TEXT:
-${text}`
-                }
-              ]
-            }
-          ],
-          generationConfig:{
-            temperature:0.2,
-            topP:0.8,
-            maxOutputTokens:1024
-          }
-        })
-      }
-    );
-
-    const data = await res.json();
-
-    const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    translateOut.innerText = result || "No response ❌";
-
-  }catch(e){
-    translateOut.innerText = "API Error ❌";
-  }
+  const audio = new Audio(url);
+  audio.play();
 }
-
-/* ================= VOICE (Browser TTS) ================= */
-function generateVoice(){
-  const text = voiceText.value;
-  const style = voiceStyle.value;
-
-  if(!text){
-    alert("Enter text");
-    return;
-  }
-
-  const speech = new SpeechSynthesisUtterance(text);
-
-  if(style === "happy") speech.rate = 1.3;
-  if(style === "sad") speech.rate = 0.8;
-  if(style === "excited") speech.rate = 1.5;
-  if(style === "whisper") speech.volume = 0.5;
-
-  speech.lang = "en-US";
-
-  speechSynthesis.speak(speech);
-}
-
 </script>
 
 </body>
