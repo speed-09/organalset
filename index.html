@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubtitleAI PRO</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#0d1117;
+  color:#fff;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:#161b22;
+  padding:18px;
+  border-radius:12px;
+  margin-bottom:16px;
+}
+
+h1{ margin-bottom:10px; }
+
+input, textarea, select, button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+}
+
+input, textarea, select{
+  background:#0d1117;
+  color:#fff;
+  outline:none;
+}
+
+button{
+  background:#00f28f;
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  opacity:0.85;
+}
+
+.output{
+  white-space:pre-wrap;
+  margin-top:10px;
+  background:#0d1117;
+  padding:10px;
+  border-radius:8px;
+}
+audio{
+  width:100%;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🔥 SubtitleAI PRO</h1>
+
+<!-- SETTINGS -->
+<div class="card">
+<h3>🔑 API Settings</h3>
+
+<input type="text" id="groqKey" placeholder="Groq API Key">
+<input type="text" id="geminiKey" placeholder="Gemini API Key">
+
+<button onclick="saveKeys()">Save Keys</button>
+</div>
+
+<!-- TRANSCRIBE -->
+<div class="card">
+<h3>🎤 Audio → Text (Whisper)</h3>
+
+<input type="file" id="audioFile">
+<button onclick="transcribe()">Transcribe</button>
+
+<div id="transcribeOut" class="output"></div>
+</div>
+
+<!-- TRANSLATE -->
+<div class="card">
+<h3>🌍 Translate (Gemini AI)</h3>
+
+<textarea id="textInput" placeholder="Enter English text..."></textarea>
+
+<button onclick="translateText()">Translate to Myanmar</button>
+
+<div id="translateOut" class="output"></div>
+</div>
+
+<!-- VOICE -->
+<div class="card">
+<h3>🎙️ AI Voice (Browser)</h3>
+
+<textarea id="voiceText" placeholder="Enter text"></textarea>
+
+<select id="voiceStyle">
+  <option value="calm">Calm</option>
+  <option value="happy">Happy</option>
+  <option value="sad">Sad</option>
+  <option value="excited">Excited</option>
+  <option value="whisper">Whisper</option>
+</select>
+
+<button onclick="generateVoice()">Generate Voice</button>
+
+<audio id="audioPlayer" controls></audio>
+</div>
+
+</div>
+
+<script>
+
+/* ================= SAVE KEYS ================= */
+function saveKeys(){
+  localStorage.setItem("groqKey", groqKey.value);
+  localStorage.setItem("geminiKey", geminiKey.value);
+  alert("Keys Saved ✔");
+}
+
+/* ================= TRANSCRIBE (Groq Whisper) ================= */
+async function transcribe(){
+  const file = audioFile.files[0];
+  const key = localStorage.getItem("groqKey");
+
+  if(!file || !key){
+    alert("Missing file or API key");
+    return;
+  }
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("model", "whisper-large-v3");
+
+  transcribeOut.innerText = "Processing...";
+
+  try{
+    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer " + key
+      },
+      body:form
+    });
+
+    const data = await res.json();
+    transcribeOut.innerText = data.text || "Error ❌";
+
+  }catch(e){
+    transcribeOut.innerText = "API Error ❌";
+  }
+}
+
+/* ================= TRANSLATE (Gemini 1.5 Flash Ultra) ================= */
+async function translateText(){
+  const text = textInput.value;
+  const key = localStorage.getItem("geminiKey");
+
+  if(!text || !key){
+    translateOut.innerText = "Missing input or API key";
+    return;
+  }
+
+  translateOut.innerText = "⚡ Translating...";
+
+  try{
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          contents:[
+            {
+              parts:[
+                {
+                  text:
+`Translate this to natural Myanmar subtitle style.
+Keep sentences short and simple.
+
+TEXT:
+${text}`
+                }
+              ]
+            }
+          ],
+          generationConfig:{
+            temperature:0.2,
+            topP:0.8,
+            maxOutputTokens:1024
+          }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    translateOut.innerText = result || "No response ❌";
+
+  }catch(e){
+    translateOut.innerText = "API Error ❌";
+  }
+}
+
+/* ================= VOICE (Browser TTS) ================= */
+function generateVoice(){
+  const text = voiceText.value;
+  const style = voiceStyle.value;
+
+  if(!text){
+    alert("Enter text");
+    return;
+  }
+
+  const speech = new SpeechSynthesisUtterance(text);
+
+  if(style === "happy") speech.rate = 1.3;
+  if(style === "sad") speech.rate = 0.8;
+  if(style === "excited") speech.rate = 1.5;
+  if(style === "whisper") speech.volume = 0.5;
+
+  speech.lang = "en-US";
+
+  speechSynthesis.speak(speech);
+}
+
+</script>
+
+</body>
+</html>
