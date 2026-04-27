@@ -1,271 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SubtitleAI PRO</title>
+<title>SubtitleAI PRO (All-in-One)</title>
 
 <style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:linear-gradient(135deg,#0d1117,#020617);
-  color:#fff;
-}
-
-.container{
-  max-width:900px;
-  margin:auto;
-  padding:20px;
-}
-
-.card{
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(10px);
-  padding:18px;
-  border-radius:14px;
-  margin-bottom:18px;
-}
-
-h1{
-  text-align:center;
-  margin-bottom:20px;
-}
-
-input, textarea, select, button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
-}
-
-input, textarea, select{
-  background:#0d1117;
-  color:#fff;
-  outline:none;
-}
-
-button{
-  background:#00f28f;
-  color:#000;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:0.85;
-}
-
-.output{
-  white-space:pre-wrap;
-  margin-top:10px;
-  background:#020617;
-  padding:10px;
-  border-radius:8px;
-}
-
-.actions{
-  display:flex;
-  gap:10px;
-}
-
-audio{
-  width:100%;
-  margin-top:10px;
-}
+body{background:#0d1117;color:#fff;font-family:sans-serif;text-align:center}
+.container{max-width:900px;margin:auto;padding:20px}
+.card{background:#161b22;padding:15px;border-radius:10px;margin:15px 0}
+button{padding:10px;background:#00f28f;border:none;border-radius:8px;margin-top:10px}
+textarea{width:100%;height:150px;margin-top:10px}
+input{margin-top:10px}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-
 <h1>🔥 SubtitleAI PRO</h1>
 
-<!-- API -->
 <div class="card">
-<h3>🔑 API Settings</h3>
-<input id="groqKey" placeholder="Groq API Key">
-<input id="geminiKey" placeholder="Gemini API Key">
-<button onclick="saveKeys()">Save Keys</button>
+<h3>🔑 API Keys</h3>
+<input id="groqKey" placeholder="Groq Key">
+<input id="geminiKey" placeholder="Gemini Key">
+<button onclick="saveKeys()">Save</button>
 </div>
 
-<!-- TRANSCRIBE -->
 <div class="card">
-<h3>🎤 Audio → Text</h3>
-<input type="file" id="audioFile">
-<button onclick="transcribe()">Transcribe</button>
-<div id="transcribeOut" class="output"></div>
+<h3>🎤 Upload Audio</h3>
+<input type="file" id="file">
+<button onclick="runAll()">🚀 Start</button>
 </div>
 
-<!-- TRANSLATE -->
 <div class="card">
-<h3>🌍 Translate</h3>
-<textarea id="textInput" placeholder="Enter or auto-filled text"></textarea>
-<button onclick="translateText()">Translate → Myanmar</button>
-
-<div class="actions">
-<button onclick="copyText()">Copy</button>
-<button onclick="downloadText()">Download</button>
+<h3>📄 English Text</h3>
+<textarea id="text"></textarea>
 </div>
 
-<div id="translateOut" class="output"></div>
+<div class="card">
+<h3>🌏 Burmese</h3>
+<textarea id="mm"></textarea>
+<button onclick="makeSRT()">Generate SRT</button>
+<button onclick="downloadSRT()">Download</button>
 </div>
 
-<!-- VOICE -->
 <div class="card">
-<h3>🎙️ AI Voice</h3>
-<textarea id="voiceText"></textarea>
-
-<select id="voiceStyle">
-<option value="normal">Normal</option>
-<option value="fast">Fast</option>
-<option value="slow">Slow</option>
-</select>
-
-<button onclick="generateVoice()">Generate Voice</button>
-<audio id="audioPlayer" controls></audio>
+<h3>🔊 Voice</h3>
+<button onclick="playVoice()">Play Voice</button>
 </div>
 
 </div>
 
 <script>
 
-/* LOAD SAVED KEYS */
-groqKey.value = localStorage.getItem("groqKey") || "";
-geminiKey.value = localStorage.getItem("geminiKey") || "";
-
-/* SAVE KEYS */
+/* SAVE */
 function saveKeys(){
-  localStorage.setItem("groqKey", groqKey.value.trim());
-  localStorage.setItem("geminiKey", geminiKey.value.trim());
-  alert("Saved ✔");
+  localStorage.setItem("groq",groqKey.value);
+  localStorage.setItem("gemini",geminiKey.value);
+  alert("Saved");
 }
 
-/* TRANSCRIBE */
-async function transcribe(){
-  const file = audioFile.files[0];
-  const key = localStorage.getItem("groqKey");
+/* MAIN FLOW */
+async function runAll(){
+  const file = document.getElementById("file").files[0];
+  const groq = localStorage.getItem("groq");
+  const gemini = localStorage.getItem("gemini");
 
-  if(!file || !key){
+  if(!file || !groq || !gemini){
     alert("Missing file or key");
     return;
   }
 
-  const form = new FormData();
-  form.append("file", file);
-  form.append("model", "whisper-large-v3");
+  /* TRANSCRIBE */
+  const fd = new FormData();
+  fd.append("file",file);
+  fd.append("model","whisper-large-v3");
 
-  transcribeOut.innerText = "⏳ Processing...";
+  const r1 = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
+    method:"POST",
+    headers:{Authorization:"Bearer "+groq},
+    body:fd
+  });
 
-  try{
-    const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions",{
-      method:"POST",
-      headers:{ "Authorization":"Bearer "+key },
-      body:form
-    });
+  const d1 = await r1.json();
+  text.value = d1.text;
 
-    const data = await res.json();
+  /* TRANSLATE */
+  const r2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      contents:[{parts:[{text:`Translate to natural Burmese:\n${d1.text}`}]}]
+    })
+  });
 
-    if(data.error){
-      transcribeOut.innerText = "❌ "+data.error.message;
-      return;
-    }
-
-    transcribeOut.innerText = data.text;
-    textInput.value = data.text; // AUTO FILL
-
-  }catch(e){
-    transcribeOut.innerText = "❌ Network error";
-  }
+  const d2 = await r2.json();
+  mm.value = d2.candidates[0].content.parts[0].text;
 }
 
-/* TRANSLATE */
-async function translateText(){
-  const text = textInput.value;
-  const key = localStorage.getItem("geminiKey");
+/* SRT */
+let srtData="";
 
-  if(!text || !key){
-    translateOut.innerText = "Missing input or key";
-    return;
-  }
+function makeSRT(){
+  const lines = mm.value.split("\n");
+  srtData="";
 
-  translateOut.innerText = "⚡ Translating...";
+  lines.forEach((l,i)=>{
+    let start=`00:00:${String(i*2).padStart(2,"0")},000`;
+    let end=`00:00:${String(i*2+2).padStart(2,"0")},000`;
 
-  try{
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-      {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({
-          contents:[
-            {
-              parts:[
-                {
-                  text:
-`Translate to natural Burmese subtitle style.
+    srtData += `${i+1}\n${start} --> ${end}\n${l}\n\n`;
+  });
 
-Rules:
-- Short sentences
-- No English
-- Clean reading
-
-TEXT:
-${text}`
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await res.json();
-    const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    translateOut.innerText = result || "❌ No response";
-    voiceText.value = result;
-
-  }catch(e){
-    translateOut.innerText = "❌ API error";
-  }
-}
-
-/* COPY */
-function copyText(){
-  navigator.clipboard.writeText(translateOut.innerText);
-  alert("Copied ✔");
+  alert("SRT Ready");
 }
 
 /* DOWNLOAD */
-function downloadText(){
-  const blob = new Blob([translateOut.innerText], {type:"text/plain"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "subtitle.txt";
+function downloadSRT(){
+  const blob = new Blob([srtData],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="subtitle.srt";
   a.click();
 }
 
 /* VOICE */
-function generateVoice(){
-  const text = voiceText.value;
-  const style = voiceStyle.value;
-
-  if(!text){
-    alert("Enter text");
-    return;
-  }
-
-  const speech = new SpeechSynthesisUtterance(text);
-
-  speech.lang = "my-MM";
-
-  if(style === "fast") speech.rate = 1.4;
-  if(style === "slow") speech.rate = 0.8;
-
+function playVoice(){
+  const speech=new SpeechSynthesisUtterance(mm.value);
+  speech.lang="my-MM";
   speechSynthesis.speak(speech);
 }
 
